@@ -30,7 +30,7 @@ function newDoc() {
   return {
     app: APP_ID,
     version: 1,
-    cliente: { nome: '', cognome: '', nascita: '', sesso: '', altezza: '', peso: '', professione: '', attivita: '', dominante: '', motivo: '', consenso: false },
+    cliente: { nome: '', cognome: '', nascita: '', sesso: '', altezza: '', peso: '', professione: '', attivita: '', dominante: '', trainer: '', motivo: '', consenso: false },
     valutazione: { data: todayISO(), valutatore: profilo.nome },
     statica: {},
     noteStatica: '',
@@ -180,6 +180,7 @@ function renderAnagrafica() {
       ${select('cliente.dominante', [{ v: '', l: '—' }, 'Destro', 'Sinistro', 'Ambidestro'], 'Lato dominante')}
       ${field('cliente.professione', 'Professione / postura lavorativa')}
       ${field('cliente.attivita', 'Attività sportiva')}
+      ${field('cliente.trainer', 'Trainer di riferimento')}
       ${field('cliente.motivo', 'Motivo della valutazione, dolori, interventi, note anamnestiche', 'textarea', 'wide')}
     </div></div>
     <div class="card"><div class="grid">

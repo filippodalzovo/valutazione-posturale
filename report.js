@@ -50,6 +50,7 @@ async function reportTecnico(doc, prev) {
     ['Altezza / peso', [c.altezza ? `${c.altezza} cm` : '', c.peso ? `${c.peso} kg` : ''].filter(Boolean).join(' · ')],
     ['Valutazione del', fmtDate(doc.valutazione.data)],
     ['Operatore', doc.valutazione.valutatore],
+    ['Trainer di riferimento', c.trainer],
     ['Confronto con', prev ? `valutazione del ${fmtDate(prev.valutazione?.data)}` : ''],
   ].filter(([, v]) => v);
   h.push(`<div class="r-dati">${dati.map(([k, v]) => `<div><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`);
@@ -168,7 +169,7 @@ async function reportCliente(doc, prev) {
 
   h.push(testata('La tua valutazione posturale', `${nome(c)} · ${fmtDate(doc.valutazione.data)}`));
   h.push(`<p class="r-intro">Ecco in sintesi cosa è emerso dalla valutazione${doc.valutazione.valutatore ? ` con ${esc(doc.valutazione.valutatore)}` : ''}:
-    dove il corpo lavora bene, cosa possiamo migliorare insieme e quali sono i prossimi passi.</p>`);
+    dove il corpo lavora bene, cosa possiamo migliorare insieme e quali sono i prossimi passi.${c.trainer ? ` Il tuo trainer di riferimento è <strong>${esc(c.trainer)}</strong>.` : ''}</p>`);
 
   // Cosa abbiamo osservato
   const zone = rilieviPerZona(ril);
