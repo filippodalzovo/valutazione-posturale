@@ -4,7 +4,7 @@
 //
 // Quando cambiano i file dell'app, aumentare VERSIONE: al primo avvio con il
 // server acceso la nuova versione viene scaricata e usata dall'avvio successivo.
-const VERSIONE = 'vp-2026-10-09-10';
+const VERSIONE = 'vp-2026-10-09-11';
 
 const APP = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
@@ -21,7 +21,10 @@ const MOTORE = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSIONE).then((c) => c.addAll([...APP, ...MOTORE])).then(() => self.skipWaiting()));
+  // cache: 'reload' = dal sito, non dalla memoria del browser (altrimenti può salvare file vecchi)
+  e.waitUntil(caches.open(VERSIONE)
+    .then((c) => c.addAll([...APP, ...MOTORE].map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {

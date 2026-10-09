@@ -1487,6 +1487,15 @@ initArchivio({
 
 // App installabile: una copia dei file resta sul Mac e l'app parte anche a server spento
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // Quando una nuova versione prende il controllo si ricarica la pagina, salvo modifiche in corso
+  const giaControllata = !!navigator.serviceWorker.controller;
+  let ricaricata = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!giaControllata || ricaricata) return;
+    ricaricata = true;
+    if (!dirty) location.reload();
+    else toast('È disponibile una nuova versione dell\'app: salva il lavoro e riaprila per usarla.');
+  });
   navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker non registrato', e));
 }
 
