@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Nessuna connessione verso l'esterno: tutto (foto, video, modello) resta su questo Mac. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Valutazione posturale</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <strong>Valutazione posturale</strong>
+        <span id="cliente-titolo" class="muted"></span>
+        <span id="stato-salvataggio" class="badge" hidden>Modifiche non salvate</span>
+      </div>
+      <nav class="actions">
+        <button data-action="archivio">Archivio</button>
+        <button data-action="nuova">Nuova</button>
+        <button data-action="apri">Apri…</button>
+        <button data-action="salva" class="primary">Salva</button>
+        <button data-action="rivaluta" title="Nuova valutazione dello stesso cliente, con la precedente a confronto">Rivalutazione</button>
+        <button data-action="confronta" title="Carica una valutazione precedente solo per confronto">Confronta con…</button>
+        <button data-action="stampa">Report / PDF</button>
+      </nav>
+    </header>
+    <div id="prev-bar" class="prev-bar" hidden></div>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="anagrafica" class="active">Anagrafica</button>
+      <button role="tab" data-tab="statica">Osservazione statica</button>
+      <button role="tab" data-tab="foto">Foto</button>
+      <button role="tab" data-tab="video">Video</button>
+      <button role="tab" data-tab="test">Test funzionali</button>
+      <button role="tab" data-tab="conclusioni">Conclusioni</button>
+    </nav>
+
+    <main>
+      <section id="tab-anagrafica" class="tab"></section>
+      <section id="tab-statica" class="tab" hidden></section>
+      <section id="tab-foto" class="tab" hidden></section>
+      <section id="tab-video" class="tab" hidden></section>
+      <section id="tab-test" class="tab" hidden></section>
+      <section id="tab-conclusioni" class="tab" hidden></section>
+    </main>
+  </div>
+
+  <div id="report" class="report"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input type="file" id="file-open" accept=".json,application/json" hidden>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
