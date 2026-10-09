@@ -2,9 +2,10 @@ import { CHECKLIST, VISTE, LATI, GRADI } from './defs.js';
 import { MOVIMENTI, GRUPPI_MOV, VISTE_VIDEO, PUNTI_LIBERI, movimento, movimentoPerTest } from './movimenti.js';
 import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggiornaVideoTest } from './tests-ui.js';
 import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-logic.js';
-import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome } from './archivio.js';
+import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome, SalvataggioAnnullato } from './archivio.js';
 import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
 import { confrontoPrecedente } from './confronto.js';
+import { guidaHtml } from './guida.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
@@ -19,12 +20,15 @@ import { $, $$, esc, getPath, setPath, todayISO, fmtDate, eta, riepilogoRows, et
 
 const APP_ID = 'valutazione-posturale';
 
+// Profilo di chi usa questo computer (salvato nel browser): nome del valutatore
+const profilo = { nome: '' };
+
 function newDoc() {
   return {
     app: APP_ID,
     version: 1,
     cliente: { nome: '', cognome: '', nascita: '', sesso: '', altezza: '', peso: '', professione: '', attivita: '', dominante: '', motivo: '', consenso: false },
-    valutazione: { data: todayISO(), valutatore: '' },
+    valutazione: { data: todayISO(), valutatore: profilo.nome },
     statica: {},
     noteStatica: '',
     test: {},
@@ -140,7 +144,9 @@ function renderHeader() {
   const n = nomeCliente(doc);
   $('#cliente-titolo').textContent = n || 'Nuova valutazione';
   const e = eta(doc.cliente.nascita, doc.valutazione.data || todayISO());
-  $('#cliente-sotto').textContent = [e != null && e >= 0 ? `${e} anni` : '', doc.valutazione.data ? `valutazione del ${fmtDate(doc.valutazione.data)}` : '']
+  const s = doc.salvataggio;
+  const salvata = s?.il ? `salvata${s.da ? ` da ${s.da}` : ''} il ${new Date(s.il).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '';
+  $('#cliente-sotto').textContent = [e != null && e >= 0 ? `${e} anni` : '', doc.valutazione.data ? `valutazione del ${fmtDate(doc.valutazione.data)}` : '', salvata]
     .filter(Boolean).join(' · ');
   document.title = n ? `Valutazione Posturale — ${n}` : 'Valutazione Posturale';
 }
@@ -227,7 +233,7 @@ function renderStatica() {
         ${[0, 1, 2].map((i) => `<td><input type="number" step="0.5" min="0" style="width:80px" data-soglia="${v.id}" data-i="${i}" value="${soglie[v.id][i]}"> °</td>`).join('')}</tr>`).join('')}
       </table>
       <div class="toolbar" style="margin-top:8px"><button class="small" data-action="soglie-default">Ripristina i valori predefiniti</button>
-      <span class="muted small">Le soglie valgono per tutte le valutazioni e restano salvate in questo browser.</span></div>
+      <span class="muted small">I valori predefiniti sono lo standard comune a tutti i centri Gymnasium: cambiali solo se serve davvero, così le valutazioni restano confrontabili. Le modifiche valgono solo su questo computer.</span></div>
     </details>`;
   aggiornaSuggerimenti();
 }
@@ -1123,18 +1129,25 @@ function ripristinaImmagini(d) {
   return d;
 }
 
+let fileModificatoIl = null;
+
 async function salva() {
+  doc.salvataggio = { da: profilo.nome || doc.valutazione.valutatore || '', il: new Date().toISOString() };
   const json = serializza(doc);
   // Archivio collegato: si salva nella cartella del cliente, senza finestre di dialogo
   if ((await statoArchivio()) !== 'assente' && (await statoArchivio()) !== 'non-supportato') {
     if (!cartellaCliente()) { toast('Inserisci cognome e nome del cliente (Anagrafica): servono per la sua cartella nell\'archivio.', 'err'); return; }
     if (await assicuraAccesso()) {
       try {
-        fileHandle = await salvaInArchivio(json, cartellaCliente(), nomeFile(), fileHandle);
+        const r = await salvaInArchivio(json, cartellaCliente(), nomeFile(), fileHandle, fileModificatoIl);
+        fileHandle = r.handle;
+        fileModificatoIl = r.modificatoIl;
         markDirty(false);
+        renderHeader();
         toast(`Salvato nell'archivio: ${cartellaCliente()} / ${fileHandle.name}`);
         return;
       } catch (e) {
+        if (e instanceof SalvataggioAnnullato) { toast('Salvataggio annullato: la tua versione è ancora aperta qui.'); return; }
         console.error(e);
         toast('Non riesco a scrivere nell\'archivio: scegli dove salvare il file.', 'err');
       }
@@ -1185,6 +1198,9 @@ function renderAll() {
 
 function caricaDoc(d, handle) {
   doc = d; fileHandle = handle || null; prev = null; sessionVideo.id = null; sessionVideo.frames = null;
+  // data di modifica all'apertura: serve a capire se un collega l'ha salvata nel frattempo
+  fileModificatoIl = null;
+  handle?.getFile().then((f) => { if (fileHandle === handle) fileModificatoIl = f.lastModified; }).catch(() => {});
   $('#player').hidden = true;
   markDirty(false);
   renderAll();
@@ -1224,6 +1240,18 @@ const azioni = {
   },
   archivio() { apriPannello(); },
   home() { mostraHome(); },
+  guida() { mostraGuida(); },
+  async 'guida-pdf'() {
+    const rep = $('#report');
+    rep.innerHTML = `<header class="r-testa"><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="r-logo">
+      <div class="r-titolo"><div class="r-tit">Valutazione Posturale</div><div class="r-sotto">Guida per i colleghi</div></div></header>
+      <div class="guida">${guidaHtml()}</div>`;
+    await Promise.all([...rep.querySelectorAll('img')].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
+    const t = document.title;
+    document.title = 'Valutazione Posturale - Guida';
+    window.print();
+    document.title = t;
+  },
   torna() { mostraTab(ultimaTab); },
   salva,
   rivaluta() {
@@ -1338,8 +1366,25 @@ document.addEventListener('click', (e) => {
 let inHome = false;
 let ultimaTab = 'anagrafica';
 
+// Guida per i colleghi: pagina a sé, come la pagina iniziale
+function mostraGuida() {
+  inHome = true;
+  $('.tabs').hidden = true;
+  $$('main > .tab').forEach((s) => (s.hidden = true));
+  $('#prev-bar').hidden = true;
+  $('#home').hidden = true;
+  const g = $('#guida');
+  g.hidden = false;
+  g.innerHTML = `<div class="home-top"><div><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="home-logo"><h2>Guida</h2>
+      <p class="muted">Installazione, primo avvio e uso dell'app: da leggere o da mandare ai colleghi.</p></div>
+      <div class="toolbar"><button class="primary" data-action="guida-pdf">Salva come PDF</button><button data-action="home">Torna ai clienti</button></div></div>
+    <div class="card guida">${guidaHtml()}</div>`;
+  window.scrollTo(0, 0);
+}
+
 function mostraHome() {
   inHome = true;
+  $('#guida').hidden = true;
   $('.tabs').hidden = true;
   $$('main > .tab').forEach((s) => (s.hidden = true));
   $('#prev-bar').hidden = true;
@@ -1354,6 +1399,9 @@ function mostraHome() {
         <button data-action="apri">Apri un file…</button>
         ${inCorso ? `<button data-action="torna">Torna a ${esc(nomeCliente(doc) || 'valutazione in corso')}</button>` : ''}
       </div></div>
+    <div class="card profilo"><label class="field" style="max-width:360px"><span>Il tuo nome (valutatore)</span>
+      <input type="text" id="home-nome" value="${esc(profilo.nome)}" placeholder="Nome e cognome"></label>
+      <p class="muted small" style="margin:6px 0 0">Compare in automatico nelle nuove valutazioni e nei report, e indica ai colleghi chi ha salvato per ultimo. Resta su questo computer.</p></div>
     <div class="card" id="home-archivio"></div>`;
   renderHome($('#home-archivio'));
   window.scrollTo(0, 0);
@@ -1363,6 +1411,7 @@ function mostraTab(id) {
   inHome = false;
   ultimaTab = id;
   $('#home').hidden = true;
+  $('#guida').hidden = true;
   $('.tabs').hidden = false;
   renderPrevBar();
   $$('.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
@@ -1380,6 +1429,20 @@ buildVideoTab();
 initTestUI({ getDoc: () => doc, getPrev: () => prev, markDirty, toast, apriVideoPerTest, vaiAlVideo });
 renderAll();
 mostraHome();
+
+// Nome del valutatore di questo computer
+leggi('valutatore').then((n) => {
+  profilo.nome = n || '';
+  if (!dirty && !doc.valutazione.valutatore) doc.valutazione.valutatore = profilo.nome;
+  if (inHome) mostraHome(); else renderAnagrafica();
+});
+document.addEventListener('change', async (e) => {
+  if (e.target.id !== 'home-nome') return;
+  profilo.nome = e.target.value.trim();
+  await scrivi('valutatore', profilo.nome);
+  if (!doc.valutazione.valutatore) { doc.valutazione.valutatore = profilo.nome; renderAnagrafica(); }
+  toast(profilo.nome ? `Ciao ${profilo.nome}: il tuo nome comparirà nelle nuove valutazioni.` : 'Nome del valutatore rimosso.');
+});
 
 // Soglie dei suggerimenti: valori predefiniti finché non arrivano quelle salvate
 leggi('soglieSuggerimenti').then((s) => { if (s) { soglie = { ...SOGLIE_DEFAULT, ...s }; renderStatica(); } });

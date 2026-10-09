@@ -218,6 +218,14 @@ button.grande { padding: 11px 18px; font-size: 16px; font-weight: 600; }
 .recente { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #fcfcfd; }
 .cliente-card > summary { cursor: pointer; }
 
+.guida { max-width: 860px; line-height: 1.55; }
+.guida h2 { font-size: 17px; margin: 22px 0 6px; }
+.guida h2:first-child { margin-top: 0; }
+.guida ul, .guida ol { padding-left: 22px; }
+.guida li { margin: 4px 0; }
+.profilo { padding: 12px 16px; }
+.report .guida { max-width: none; font-size: 10.5pt; line-height: 1.45; }
+
 /* riepilogo */
 .riep-grid { display: grid; gap: 14px; grid-template-columns: minmax(300px, 1fr) minmax(300px, 1.2fr); align-items: start; }
 .sagome { display: flex; gap: 10px; justify-content: center; }

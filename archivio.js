@@ -72,26 +72,45 @@ async function elenco() {
 
 // Salva nella cartella del cliente. Se esiste già un file con lo stesso nome che non è
 // quello aperto, chiede se sovrascriverlo o salvare una copia separata.
-export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto) {
+// Errore lanciato quando l'utente rinuncia a salvare (nessun messaggio d'errore)
+export class SalvataggioAnnullato extends Error {}
+
+// `aperto` = file della valutazione aperta, `modificatoIl` = sua data di modifica all'apertura.
+// Con l'archivio condiviso nel centro, se un collega l'ha salvato nel frattempo si chiede cosa fare.
+export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto, modificatoIl) {
   const sub = await dir.getDirectoryHandle(cartellaCliente, { create: true });
   let fh = null;
   try { fh = await sub.getFileHandle(nomeFile); } catch { fh = null; }
-  if (fh && !(aperto && (await fh.isSameEntry(aperto)))) {
+  const stesso = !!(fh && aperto && (await fh.isSameEntry(aperto)));
+  if (stesso && modificatoIl) {
+    const f = await fh.getFile();
+    if (f.lastModified > modificatoIl + 2000) {
+      let chi = 'un altro computer';
+      try { const s = JSON.parse(await f.text()).salvataggio; if (s?.da) chi = s.da; } catch { /* file illeggibile: resta generico */ }
+      const ora = new Date(f.lastModified).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const copia = confirm(`Attenzione: questa valutazione è stata salvata da ${chi} (${ora}) dopo che l'hai aperta.\n\nOK: salva la tua versione come copia separata (consigliato).\nAnnulla: scegli tra sovrascrivere o non salvare.`);
+      if (copia) fh = await nuovaCopia(sub, nomeFile);
+      else if (!confirm(`Sovrascrivere le modifiche di ${chi} con la tua versione?\n\nOK: sovrascrivi.\nAnnulla: non salvare ora.`)) throw new SalvataggioAnnullato();
+    }
+  } else if (fh && !stesso) {
     const m = nomeFile.match(RE_FILE);
     const sovrascrivi = confirm(`Nell'archivio c'è già una valutazione di ${cartellaCliente}${m ? ` del ${fmtDate(m[2])}` : ''}.\n\nOK: sovrascrivila con questa.\nAnnulla: salva questa come file separato.`);
-    if (!sovrascrivi) {
-      const base = nomeFile.replace(/\.json$/i, '');
-      for (let n = 2; ; n++) {
-        const nome = `${base} (${n}).json`;
-        try { await sub.getFileHandle(nome); } catch { fh = await sub.getFileHandle(nome, { create: true }); break; }
-      }
-    }
+    if (!sovrascrivi) fh = await nuovaCopia(sub, nomeFile);
   }
   fh ??= await sub.getFileHandle(nomeFile, { create: true });
   const w = await fh.createWritable();
   await w.write(testo);
   await w.close();
-  return fh;
+  return { handle: fh, modificatoIl: (await fh.getFile()).lastModified };
+}
+
+// «Nome (2).json», «Nome (3).json»… il primo libero
+async function nuovaCopia(sub, nomeFile) {
+  const base = nomeFile.replace(/\.json$/i, '');
+  for (let n = 2; ; n++) {
+    const nome = `${base} (${n}).json`;
+    try { await sub.getFileHandle(nome); } catch { return sub.getFileHandle(nome, { create: true }); }
+  }
 }
 
 // ---------- pannello e pagina iniziale ----------
