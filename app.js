@@ -142,7 +142,7 @@ function renderHeader() {
   const e = eta(doc.cliente.nascita, doc.valutazione.data || todayISO());
   $('#cliente-sotto').textContent = [e != null && e >= 0 ? `${e} anni` : '', doc.valutazione.data ? `valutazione del ${fmtDate(doc.valutazione.data)}` : '']
     .filter(Boolean).join(' · ');
-  document.title = n ? `Valutazione posturale — ${n}` : 'Valutazione posturale';
+  document.title = n ? `Valutazione Posturale — ${n}` : 'Valutazione Posturale';
 }
 
 function renderPrevBar() {
@@ -1064,7 +1064,7 @@ window.addEventListener('resize', () => {
 
 // ---------- file: apri / salva ----------
 
-const JSON_TYPES = [{ description: 'Valutazione posturale', accept: { 'application/json': ['.json'] } }];
+const JSON_TYPES = [{ description: 'Valutazione Posturale', accept: { 'application/json': ['.json'] } }];
 
 function pickJson() {
   return new Promise((resolve) => {
@@ -1106,7 +1106,7 @@ async function leggiValutazione() {
 const cartellaCliente = () => nomeCliente(doc).replace(/[\\/:*?"<>|]/g, '').trim();
 
 function nomeFile() {
-  return `Valutazione posturale - ${cartellaCliente() || 'cliente'} - ${doc.valutazione.data || todayISO()}.json`;
+  return `Valutazione Posturale - ${cartellaCliente() || 'cliente'} - ${doc.valutazione.data || todayISO()}.json`;
 }
 
 // Se la foto non è ruotata, immagine mostrata e originale coincidono: si salva una volta

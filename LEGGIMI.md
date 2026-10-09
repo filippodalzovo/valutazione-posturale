@@ -1,4 +1,4 @@
-# Valutazione posturale
+# Valutazione Posturale
 
 App per le valutazioni posturali del Gymnasium: checklist, test funzionali,
 foto con misure automatiche, analisi del movimento da video, riepilogo con
@@ -32,7 +32,7 @@ Lascia aperta la finestrella ridotta a icona mentre lavori.
 
 Dopo il primo avvio, in Chrome: icona di installazione nella barra degli
 indirizzi (o menu ⋮ → «Trasmetti, salva e condividi» → «Installa pagina come
-app…»). Da quel momento «Valutazione posturale» è nel Launchpad / menu Start,
+app…»). Da quel momento «Valutazione Posturale» è nel Launchpad / menu Start,
 si apre in una finestra sua e **funziona anche senza Avvia.command**: Chrome
 conserva una copia dell'app e del motore di analisi (~60 MB, nessun dato dei
 clienti). Per ricevere gli aggiornamenti dell'app avvia Avvia una volta.

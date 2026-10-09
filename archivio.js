@@ -5,7 +5,7 @@ import { $, esc, fmtDate } from './util.js';
 import { leggi, scrivi } from './impostazioni.js';
 
 const KEY = 'archivio';
-const RE_FILE = /^Valutazione posturale - (.+) - (\d{4}-\d{2}-\d{2})(?: \((\d+)\))?\.json$/i;
+const RE_FILE = /^Valutazione Posturale - (.+) - (\d{4}-\d{2}-\d{2})(?: \((\d+)\))?\.json$/i;
 
 let dir = null; // FileSystemDirectoryHandle della cartella archivio
 let cb = null; // { apri(testo, handle), confronta(testo), rivaluta(testo), toast }

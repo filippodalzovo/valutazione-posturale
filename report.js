@@ -43,7 +43,7 @@ async function reportTecnico(doc, prev) {
   const ril = raccogliRilievi(doc, contesto(doc));
   const h = [];
 
-  h.push(testata('Valutazione posturale', 'Report tecnico'));
+  h.push(testata('Valutazione Posturale', 'Report tecnico'));
   const dati = [
     ['Cliente', nome(c)],
     ['Data di nascita', c.nascita ? `${fmtDate(c.nascita)} (${eta(c.nascita, doc.valutazione.data)} anni)` : ''],

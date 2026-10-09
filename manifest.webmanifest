@@ -1,6 +1,6 @@
 {
-  "name": "Valutazione posturale",
-  "short_name": "Postura",
+  "name": "Valutazione Posturale",
+  "short_name": "Valutazione Posturale",
   "description": "Valutazioni posturali con analisi di foto e video, tutto in locale.",
   "lang": "it",
   "start_url": "./",

@@ -19,7 +19,7 @@ try { $listener.Start() } catch {
   exit
 }
 Write-Host ''
-Write-Host '  Valutazione posturale e attiva su http://127.0.0.1:8765/'
+Write-Host '  Valutazione Posturale e attiva su http://127.0.0.1:8765/'
 Write-Host '  Lascia aperta questa finestra mentre lavori: chiudila quando hai finito.'
 Write-Host ''
 

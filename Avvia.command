@@ -1,5 +1,5 @@
 #!/bin/bash
-# Doppio click per avviare l'app Valutazione posturale.
+# Doppio click per avviare l'app Valutazione Posturale.
 cd "$(dirname "$0")"
 PORT=8765
 URL="http://127.0.0.1:$PORT/"
@@ -19,7 +19,7 @@ fi
 
 if [ -n "$SERVER" ]; then
   echo ""
-  echo "  Valutazione posturale è aperta nel browser."
+  echo "  Valutazione Posturale è aperta nel browser."
   echo "  Lascia aperta questa finestra mentre lavori: chiudila quando hai finito."
   echo ""
   wait $SERVER
