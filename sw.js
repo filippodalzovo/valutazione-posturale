@@ -4,7 +4,7 @@
 //
 // Quando cambiano i file dell'app, aumentare VERSIONE: al primo avvio con il
 // server acceso la nuova versione viene scaricata e usata dall'avvio successivo.
-const VERSIONE = 'vp-2026-10-09-9';
+const VERSIONE = 'vp-2026-10-09-10';
 
 const APP = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
@@ -45,7 +45,9 @@ self.addEventListener('fetch', (e) => {
   // File dell'app: prima la rete (= versione più recente), altrimenti la copia.
   // Con una rete lenta dopo 3 s si usa la copia, così l'app non resta bloccata.
   const dallaCopia = () => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match('./'));
-  const rete = fetch(req).then((r) => {
+  // 'no-cache': chiede sempre al sito se il file è cambiato (GitHub Pages fa tenere
+  // ai browser una copia per 10 minuti: senza questo un aggiornamento può non arrivare subito)
+  const rete = fetch(req, { cache: 'no-cache' }).then((r) => {
     if (r.ok) { const copia = r.clone(); caches.open(VERSIONE).then((c) => c.put(req, copia)); }
     return r;
   });
