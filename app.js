@@ -7,7 +7,7 @@ import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from
 import { confrontoPrecedente } from './confronto.js';
 import { guidaHtml } from './guida.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
-import { leggi, scrivi } from './impostazioni.js';
+import { leggi, scrivi, elimina } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
 import { PhotoEditor, fileToFoto, loadImage, lineText, blurFotoArea } from './photo.js';
 import { faceEllipse, ellipseFromCorners, blurEllipse, visoVisibile } from './privacy.js';
@@ -20,8 +20,11 @@ import { $, $$, esc, getPath, setPath, todayISO, fmtDate, eta, riepilogoRows, et
 
 const APP_ID = 'valutazione-posturale';
 
-// Profilo di chi usa questo computer (salvato nel browser): nome del valutatore
-const profilo = { nome: '' };
+// Operatore della sessione: si chiede a ogni apertura dell'app e vale fino alla chiusura.
+// sessionStorage (non localStorage): sopravvive ai ricaricamenti, sparisce chiudendo l'app,
+// così su un computer condiviso ogni collega inserisce il proprio nome.
+const CHIAVE_OPERATORE = 'vp-operatore';
+const profilo = { nome: (() => { try { return sessionStorage.getItem(CHIAVE_OPERATORE) || ''; } catch { return ''; } })() };
 
 function newDoc() {
   return {
@@ -181,7 +184,7 @@ function renderAnagrafica() {
     </div></div>
     <div class="card"><div class="grid">
       ${field('valutazione.data', 'Data della valutazione', 'date')}
-      ${field('valutazione.valutatore', 'Valutatore')}
+      ${field('valutazione.valutatore', 'Operatore')}
       <div class="field wide">${checkbox('cliente.consenso', 'Il cliente ha dato il consenso informato alla valutazione e all\'acquisizione di foto e video')}</div>
     </div>
     <p class="muted small">L'altezza serve a convertire le misure delle foto in centimetri. I dati restano in questo Mac, nel file che salvi.</p></div>`;
@@ -1240,6 +1243,7 @@ const azioni = {
   },
   archivio() { apriPannello(); },
   home() { mostraHome(); },
+  operatore() { chiediOperatore(false); },
   guida() { mostraGuida(); },
   async 'guida-pdf'() {
     const rep = $('#report');
@@ -1399,9 +1403,6 @@ function mostraHome() {
         <button data-action="apri">Apri un file…</button>
         ${inCorso ? `<button data-action="torna">Torna a ${esc(nomeCliente(doc) || 'valutazione in corso')}</button>` : ''}
       </div></div>
-    <div class="card profilo"><label class="field" style="max-width:360px"><span>Il tuo nome (valutatore)</span>
-      <input type="text" id="home-nome" value="${esc(profilo.nome)}" placeholder="Nome e cognome"></label>
-      <p class="muted small" style="margin:6px 0 0">Compare in automatico nelle nuove valutazioni e nei report, e indica ai colleghi chi ha salvato per ultimo. Resta su questo computer.</p></div>
     <div class="card" id="home-archivio"></div>`;
   renderHome($('#home-archivio'));
   window.scrollTo(0, 0);
@@ -1430,19 +1431,54 @@ initTestUI({ getDoc: () => doc, getPrev: () => prev, markDirty, toast, apriVideo
 renderAll();
 mostraHome();
 
-// Nome del valutatore di questo computer
-leggi('valutatore').then((n) => {
-  profilo.nome = n || '';
-  if (!dirty && !doc.valutazione.valutatore) doc.valutazione.valutatore = profilo.nome;
-  if (inHome) mostraHome(); else renderAnagrafica();
-});
-document.addEventListener('change', async (e) => {
-  if (e.target.id !== 'home-nome') return;
-  profilo.nome = e.target.value.trim();
-  await scrivi('valutatore', profilo.nome);
-  if (!doc.valutazione.valutatore) { doc.valutazione.valutatore = profilo.nome; renderAnagrafica(); }
-  toast(profilo.nome ? `Ciao ${profilo.nome}: il tuo nome comparirà nelle nuove valutazioni.` : 'Nome del valutatore rimosso.');
-});
+// ---------- operatore della sessione ----------
+
+function renderOperatore() {
+  const b = $('#btn-operatore');
+  b.textContent = profilo.nome ? `👤 ${profilo.nome}` : '👤 Operatore';
+  b.title = 'Operatore di questa sessione: clicca per cambiarlo';
+}
+
+function impostaOperatore(nome) {
+  profilo.nome = nome;
+  try { sessionStorage.setItem(CHIAVE_OPERATORE, nome); } catch { /* resta comunque in memoria fino alla chiusura */ }
+  // nella valutazione aperta l'operatore si inserisce solo se vuoto: non si riscrive quello di un collega
+  if (!doc.valutazione.valutatore) { doc.valutazione.valutatore = nome; renderAnagrafica(); }
+  renderOperatore();
+}
+
+// Finestra «Chi sta usando l'app?»: obbligatoria all'apertura, facoltativa per cambiare operatore
+function chiediOperatore(obbligatoria) {
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modal-box operatore-box">
+    <img src="assets/logo-gymnasium.png" alt="Gymnasium" class="home-logo">
+    <h2 style="margin:0 0 4px">Chi sta usando l'app?</h2>
+    <p class="muted" style="margin:0 0 14px">Il nome dell'operatore compare nelle nuove valutazioni e nei report, e indica ai colleghi chi ha salvato per ultimo. Vale finché non chiudi l'app.</p>
+    <form><label class="field"><span>Nome e cognome dell'operatore</span>
+      <input type="text" name="nome" required autocomplete="name" value="${esc(obbligatoria ? '' : profilo.nome)}"></label>
+      <div class="toolbar" style="margin-top:14px;justify-content:flex-end">
+        ${obbligatoria ? '' : '<button type="button" data-annulla>Annulla</button>'}
+        <button type="submit" class="primary">${obbligatoria ? 'Inizia' : 'Cambia operatore'}</button></div>
+    </form></div>`;
+  document.body.appendChild(m);
+  const input = m.querySelector('input');
+  setTimeout(() => input.focus(), 50);
+  m.querySelector('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nome = input.value.trim().replace(/\s+/g, ' ');
+    if (!nome) return;
+    impostaOperatore(nome);
+    m.remove();
+    toast(`Buon lavoro, ${nome}.`);
+  });
+  m.querySelector('[data-annulla]')?.addEventListener('click', () => m.remove());
+}
+
+renderOperatore();
+if (!profilo.nome) chiediOperatore(true);
+// il nome non si conserva più tra una sessione e l'altra: si toglie quello salvato dalle versioni precedenti
+elimina('valutatore');
 
 // Soglie dei suggerimenti: valori predefiniti finché non arrivano quelle salvate
 leggi('soglieSuggerimenti').then((s) => { if (s) { soglie = { ...SOGLIE_DEFAULT, ...s }; renderStatica(); } });

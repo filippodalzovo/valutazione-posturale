@@ -49,7 +49,7 @@ async function reportTecnico(doc, prev) {
     ['Data di nascita', c.nascita ? `${fmtDate(c.nascita)} (${eta(c.nascita, doc.valutazione.data)} anni)` : ''],
     ['Altezza / peso', [c.altezza ? `${c.altezza} cm` : '', c.peso ? `${c.peso} kg` : ''].filter(Boolean).join(' · ')],
     ['Valutazione del', fmtDate(doc.valutazione.data)],
-    ['Valutatore', doc.valutazione.valutatore],
+    ['Operatore', doc.valutazione.valutatore],
     ['Confronto con', prev ? `valutazione del ${fmtDate(prev.valutazione?.data)}` : ''],
   ].filter(([, v]) => v);
   h.push(`<div class="r-dati">${dati.map(([k, v]) => `<div><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`);

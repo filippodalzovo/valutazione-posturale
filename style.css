@@ -223,8 +223,10 @@ button.grande { padding: 11px 18px; font-size: 16px; font-weight: 600; }
 .guida h2:first-child { margin-top: 0; }
 .guida ul, .guida ol { padding-left: 22px; }
 .guida li { margin: 4px 0; }
-.profilo { padding: 12px 16px; }
 .report .guida { max-width: none; font-size: 10.5pt; line-height: 1.45; }
+
+.operatore-box { max-width: 460px; margin-top: 12vh; padding: 22px 24px; }
+.operatore-btn { color: var(--muted); }
 
 /* riepilogo */
 .riep-grid { display: grid; gap: 14px; grid-template-columns: minmax(300px, 1fr) minmax(300px, 1.2fr); align-items: start; }

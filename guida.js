@@ -23,7 +23,9 @@ export function guidaHtml() {
 
   <h2>2. Primo avvio</h2>
   <ul>
-    <li><strong>Il tuo nome</strong>: nella pagina iniziale scrivi nome e cognome. Comparirà nelle valutazioni e nei report.</li>
+    <li><strong>Operatore</strong>: a ogni apertura l'app chiede il nome dell'operatore. Vale finché non chiudi l'app e
+      compare nelle nuove valutazioni e nei report. Per passare il computer a un collega clicca il nome in alto
+      («👤») e cambia operatore.</li>
     <li><strong>Archivio del centro</strong>: clicca «Scegli la cartella dell'archivio» e seleziona la
       <strong>cartella condivisa del tuo centro</strong> su OneDrive/SharePoint del club, sincronizzata sul computer
       (su Mac con l'app OneDrive, su Windows dall'Esplora file). Tutti i colleghi del centro scelgono la stessa cartella.
