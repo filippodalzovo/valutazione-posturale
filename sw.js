@@ -4,12 +4,12 @@
 //
 // Quando cambiano i file dell'app, aumentare VERSIONE: al primo avvio con il
 // server acceso la nuova versione viene scaricata e usata dall'avvio successivo.
-const VERSIONE = 'vp-2026-10-09-13';
+const VERSIONE = 'vp-2026-10-09-15';
 
 const APP = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'assets/logo-gymnasium.png',
-  'app.js', 'archivio.js', 'bodymap.js', 'bolla.js', 'confronto.js', 'defs.js', 'guida.js', 'impostazioni.js', 'level.js', 'movimenti.js', 'photo.js', 'pose.js',
+  'app.js', 'archivio.js', 'bodymap.js', 'bolla.js', 'confronto.js', 'consenso.js', 'defs.js', 'guida.js', 'impostazioni.js', 'level.js', 'movimenti.js', 'photo.js', 'pose.js',
   'privacy.js', 'report.js', 'suggerimenti.js', 'test-foto.js', 'tests-catalogo.js', 'tests-logic.js', 'tests-ui.js',
   'util.js', 'video.js',
 ];

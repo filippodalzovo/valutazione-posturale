@@ -1,10 +1,15 @@
 // Archivio clienti: una cartella scelta dall'utente (es. su OneDrive) con una
 // sottocartella per cliente e un file .json per valutazione.
 // Nel browser si ricorda solo il riferimento alla cartella (IndexedDB), mai dati dei clienti.
-import { $, esc, fmtDate } from './util.js';
+import { $, esc, fmtDate, todayISO } from './util.js';
 import { leggi, scrivi } from './impostazioni.js';
 
 const KEY = 'archivio';
+// Scheda leggera del cliente (trainer, operatore, rivalutazione prevista): la pagina iniziale
+// legge questa invece di aprire tutte le valutazioni, che con le foto pesano.
+const FILE_INFO = '_info.json';
+let ultimoElenco = null;
+let filtri = { trainer: '', operatore: '' };
 const RE_FILE = /^Valutazione Posturale - (.+) - (\d{4}-\d{2}-\d{2})(?: \((\d+)\))?\.json$/i;
 
 let dir = null; // FileSystemDirectoryHandle della cartella archivio
@@ -58,16 +63,21 @@ async function elenco() {
   for await (const [nome, h] of dir.entries()) {
     if (h.kind !== 'directory' || nome.startsWith('.')) continue;
     const val = [];
+    let info = null;
     for await (const [fn, fh] of h.entries()) {
       if (fh.kind !== 'file' || !fn.toLowerCase().endsWith('.json')) continue;
+      if (fn === FILE_INFO) { try { info = JSON.parse(await (await fh.getFile()).text()); } catch { info = null; } continue; }
+      if (fn.startsWith('_') || fn.startsWith('.')) continue;
       const m = fn.match(RE_FILE);
       val.push({ nome: fn, data: m ? m[2] : null, handle: fh });
     }
     if (!val.length) continue;
     val.sort((a, b) => (b.data || '').localeCompare(a.data || '') || b.nome.localeCompare(a.nome));
-    clienti.push({ nome, valutazioni: val });
+    clienti.push({ nome, valutazioni: val, info });
   }
-  return clienti.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+  clienti.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+  ultimoElenco = clienti;
+  return clienti;
 }
 
 // Salva nella cartella del cliente. Se esiste già un file con lo stesso nome che non è
@@ -77,7 +87,7 @@ export class SalvataggioAnnullato extends Error {}
 
 // `aperto` = file della valutazione aperta, `modificatoIl` = sua data di modifica all'apertura.
 // Con l'archivio condiviso nel centro, se un collega l'ha salvato nel frattempo si chiede cosa fare.
-export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto, modificatoIl) {
+export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto, modificatoIl, info) {
   const sub = await dir.getDirectoryHandle(cartellaCliente, { create: true });
   let fh = null;
   try { fh = await sub.getFileHandle(nomeFile); } catch { fh = null; }
@@ -101,7 +111,35 @@ export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto, 
   const w = await fh.createWritable();
   await w.write(testo);
   await w.close();
+  if (info) await aggiornaInfo(sub, { ...info, file: fh.name });
   return { handle: fh, modificatoIl: (await fh.getFile()).lastModified };
+}
+
+// La scheda segue la valutazione più recente: risalvare una valutazione vecchia non la sovrascrive
+async function aggiornaInfo(sub, info) {
+  try {
+    let attuale = null;
+    try { attuale = JSON.parse(await (await (await sub.getFileHandle(FILE_INFO)).getFile()).text()); } catch { attuale = null; }
+    if (attuale?.ultimaValutazione && info.ultimaValutazione && attuale.ultimaValutazione > info.ultimaValutazione) return;
+    const fh = await sub.getFileHandle(FILE_INFO, { create: true });
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify({ ...info, aggiornato: new Date().toISOString() }, null, 1));
+    await w.close();
+    ultimoElenco = null;
+  } catch (e) {
+    console.warn('Scheda del cliente non aggiornata', e); // non blocca il salvataggio della valutazione
+  }
+}
+
+// Nomi dei trainer già usati nell'archivio, per l'elenco a tendina dell'anagrafica
+export async function trainerNoti() {
+  if ((await stato()) !== 'pronto') return [];
+  try {
+    const clienti = ultimoElenco || (await elenco());
+    return [...new Set(clienti.map((c) => c.info?.trainer?.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  } catch {
+    return [];
+  }
 }
 
 // «Nome (2).json», «Nome (3).json»… il primo libero
@@ -160,14 +198,53 @@ function chiudi() {
 }
 
 // Pagina iniziale: stesso elenco, con i clienti più recenti in evidenza
-let homeLegata = false;
+// la pagina iniziale viene ridisegnata da capo a ogni visita: i gestori vanno collegati a ogni nuovo contenitore
+const homeLegate = new WeakSet();
 export async function renderHome(box) {
-  if (!homeLegata) {
-    homeLegata = true;
+  if (!homeLegate.has(box)) {
+    homeLegate.add(box);
     box.addEventListener('click', (e) => gestisci(e, () => renderArchivio(box, { home: true }), false));
     box.addEventListener('input', (e) => { if (e.target.id === 'arch-cerca') filtra(box, e.target.value); });
+    box.addEventListener('change', (e) => {
+      const k = e.target.dataset?.filtroRiv;
+      if (!k) return;
+      filtri[k] = e.target.value;
+      applicaFiltriRiv(box);
+    });
   }
   await renderArchivio(box, { home: true });
+}
+
+function applicaFiltriRiv(box) {
+  for (const r of box.querySelectorAll('[data-riv]')) {
+    r.hidden = (filtri.trainer && r.dataset.trainer !== filtri.trainer) || (filtri.operatore && r.dataset.operatore !== filtri.operatore);
+  }
+  const vuoto = box.querySelector('[data-riv-vuoto]');
+  if (vuoto) vuoto.hidden = !!box.querySelector('[data-riv]:not([hidden])');
+}
+
+const giorniTra = (da, a) => Math.round((Date.parse(a) - Date.parse(da)) / 86400000);
+
+// Rivalutazioni scadute o nei prossimi 30 giorni, dalle schede dei clienti
+function sezioneRivalutazioni(clienti) {
+  const oggi = todayISO();
+  const righe = clienti.filter((c) => c.info?.rivalutazione && giorniTra(oggi, c.info.rivalutazione) <= 30)
+    .sort((a, b) => a.info.rivalutazione.localeCompare(b.info.rivalutazione));
+  if (!righe.length) return '';
+  const valori = (k) => [...new Set(righe.map((c) => c.info[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  const sel = (k, nome) => `<label class="field" style="max-width:220px"><span>${nome}</span><select data-filtro-riv="${k}">
+    <option value="">Tutti</option>${valori(k).map((v) => `<option${filtri[k] === v ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
+  return `<h3 style="margin:0 0 8px">Rivalutazioni</h3>
+    <div class="toolbar" style="margin-bottom:8px">${sel('trainer', 'Trainer')}${sel('operatore', 'Operatore')}</div>
+    <table class="misure riv">${righe.map((c) => {
+      const g = giorniTra(oggi, c.info.rivalutazione);
+      const quando = g < 0 ? `scaduta da ${-g} giorn${g === -1 ? 'o' : 'i'}` : g === 0 ? 'oggi' : `tra ${g} giorn${g === 1 ? 'o' : 'i'}`;
+      return `<tr data-riv data-trainer="${esc(c.info.trainer || '')}" data-operatore="${esc(c.info.operatore || '')}">
+        <td><strong>${esc(c.nome)}</strong><div class="muted small">${[c.info.trainer ? `trainer ${c.info.trainer}` : '', c.info.operatore ? `operatore ${c.info.operatore}` : ''].filter(Boolean).map(esc).join(' · ')}</div></td>
+        <td class="${g < 0 ? 'scaduta' : ''}">${fmtDate(c.info.rivalutazione)}<div class="small">${quando}</div></td>
+        <td style="text-align:right;white-space:nowrap">${pulsantiFile(c.nome, c.valutazioni[0].nome, false)}</td></tr>`;
+    }).join('')}</table>
+    <p class="muted small" data-riv-vuoto hidden>Nessuna rivalutazione con questi filtri.</p>`;
 }
 
 const pulsantiFile = (c, v, conConfronto = true) => `
@@ -204,7 +281,9 @@ async function renderArchivio(body, { home = false } = {}) {
   const recenti = home
     ? [...clienti].filter((c) => c.valutazioni[0].data).sort((a, b) => b.valutazioni[0].data.localeCompare(a.valutazioni[0].data)).slice(0, 6)
     : [];
+  const riv = home ? sezioneRivalutazioni(clienti) : '';
   body.innerHTML = `
+    ${riv ? `${riv}<div style="height:18px"></div>` : ''}
     ${recenti.length ? `<h3 style="margin:0 0 8px">Recenti</h3><div class="recenti">${recenti.map((c) => `<div class="recente">
         <div><strong>${esc(c.nome)}</strong><div class="muted small">ultima ${fmtDate(c.valutazioni[0].data)} · ${c.valutazioni.length} valutazion${c.valutazioni.length === 1 ? 'e' : 'i'}</div></div>
         <div class="toolbar">${pulsantiFile(c.nome, c.valutazioni[0].nome, false)}</div></div>`).join('')}</div>` : ''}
@@ -218,6 +297,7 @@ async function renderArchivio(body, { home = false } = {}) {
         <td>${v.data ? fmtDate(v.data) : esc(v.nome)}</td>
         <td style="text-align:right;white-space:nowrap">${pulsantiFile(c.nome, v.nome)}</td></tr>`).join('')}</table></details>`).join('')
     : '<p class="muted">L\'archivio è vuoto: quando salvi una valutazione con cognome e nome del cliente, finisce qui.</p>'}`;
+  if (home) applicaFiltriRiv(body);
 }
 
 async function azioneFile(a, cliente, file, chiudiDopo = true) {

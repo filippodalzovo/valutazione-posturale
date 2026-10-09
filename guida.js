@@ -45,10 +45,14 @@ export function guidaHtml() {
       si esegue; «＋» aggiunge foto, video e note.</li>
     <li><strong>Riepilogo</strong>: sagoma con le zone da attenzionare e confronto con la valutazione precedente.</li>
     <li><strong>Conclusioni</strong>: sintesi, obiettivi, indicazioni e data della rivalutazione.</li>
-    <li><strong>Salva</strong>: finisce nella cartella del cliente nell'archivio.</li>
+    <li><strong>Salva</strong>: finisce nella cartella del cliente nell'archivio. Se l'app si chiude prima, alla
+      riapertura propone di riprendere la <strong>bozza</strong> rimasta sul computer.</li>
     <li><strong>Report</strong>: «Report tecnico» per te e i colleghi, «Report per il cliente» da consegnare.
       Nella finestra di stampa scegli «Salva come PDF».</li>
   </ol>
+  <p><strong>Rivalutazioni in scadenza</strong>: nella pagina iniziale trovi quelle scadute e dei prossimi 30 giorni
+  (dalla data «Rivalutazione prevista» nelle Conclusioni), filtrabili per trainer e operatore.</p>
+  <p><strong>Consenso informato</strong>: in Anagrafica, «Stampa il modulo di consenso» prepara il modulo da far firmare.</p>
   <p><strong>Rivalutazione</strong>: dalla pagina iniziale, sul cliente, clicca «Rivalutazione». Si apre una nuova
   valutazione con la precedente a confronto (valori in blu, frecce verdi e rosse nel Riepilogo).</p>
 

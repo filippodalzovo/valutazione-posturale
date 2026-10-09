@@ -228,6 +228,9 @@ button.grande { padding: 11px 18px; font-size: 16px; font-weight: 600; }
 .operatore-box { max-width: 460px; margin-top: 12vh; padding: 22px 24px; }
 .operatore-btn { color: var(--muted); }
 
+table.riv td { vertical-align: middle; }
+table.riv td.scaduta { color: #b91c1c; font-weight: 600; }
+
 /* riepilogo */
 .riep-grid { display: grid; gap: 14px; grid-template-columns: minmax(300px, 1fr) minmax(300px, 1.2fr); align-items: start; }
 .sagome { display: flex; gap: 10px; justify-content: center; }
@@ -352,6 +355,16 @@ details.distretto[open] > summary { margin-bottom: 8px; }
 .report .var-peggio { color: #b91c1c; }
 .report .var-neutro { color: #6b7280; }
 .report .r-prossimo { margin-top: 6mm; padding: 3mm 4mm; border-radius: 2mm; background: var(--brand-soft); font-size: 11pt; }
+
+.report .c-dati { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 8mm; margin-bottom: 4mm; }
+.report .c-campo { display: flex; flex-direction: column; border-bottom: 1px solid #9ca3af; padding-bottom: 1mm; margin: 2mm 0; }
+.report .c-campo span { font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; }
+.report .c-campo strong { font-size: 11pt; min-height: 5mm; }
+.report .c-casella { display: flex; gap: 3mm; align-items: flex-start; margin: 3mm 0; font-size: 10.5pt; }
+.report .c-box { flex: none; width: 4.5mm; height: 4.5mm; border: 1.5px solid #111827; border-radius: 1mm; margin-top: .5mm; }
+.report .c-firme { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; margin-top: 14mm; }
+.report .c-firma { display: flex; flex-direction: column; gap: 1.5mm; font-size: 9pt; color: #4b5563; }
+.report .c-linea { border-bottom: 1px solid #111827; height: 12mm; }
 
 @media print {
   @page { size: A4; margin: 14mm 12mm; }

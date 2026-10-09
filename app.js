@@ -2,10 +2,11 @@ import { CHECKLIST, VISTE, LATI, GRADI } from './defs.js';
 import { MOVIMENTI, GRUPPI_MOV, VISTE_VIDEO, PUNTI_LIBERI, movimento, movimentoPerTest } from './movimenti.js';
 import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggiornaVideoTest } from './tests-ui.js';
 import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-logic.js';
-import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome, SalvataggioAnnullato } from './archivio.js';
+import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome, SalvataggioAnnullato, trainerNoti } from './archivio.js';
 import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
 import { confrontoPrecedente } from './confronto.js';
 import { guidaHtml } from './guida.js';
+import { consensoHtml } from './consenso.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi, elimina } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
@@ -66,6 +67,64 @@ function markDirty(v = true) {
   dirty = v;
   $('#stato-salvataggio').hidden = !v;
   renderStatoSchede();
+  // bozza automatica: si aggiorna con modifiche in sospeso, si cancella quando è tutto salvato
+  if (v) programmaBozza(); else annullaBozza();
+}
+
+// ---------- bozza automatica ----------
+// Resta solo su questo computer (nel browser), non nell'archivio condiviso:
+// serve a non perdere il lavoro se l'app si chiude prima di «Salva».
+
+let timerBozza = null;
+
+function programmaBozza() {
+  clearTimeout(timerBozza);
+  timerBozza = setTimeout(salvaBozza, 10000);
+}
+
+function annullaBozza() {
+  clearTimeout(timerBozza);
+  elimina('bozza');
+}
+
+async function salvaBozza() {
+  clearTimeout(timerBozza);
+  if (!dirty) return;
+  await scrivi('bozza', { doc, prev, fileHandle, fileModificatoIl, operatore: profilo.nome, il: Date.now() });
+}
+
+// chiudendo o nascondendo la finestra si salva subito
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && dirty) salvaBozza(); });
+
+async function proponiBozza() {
+  const b = await leggi('bozza');
+  if (!b?.doc) return;
+  const quando = new Date(b.il).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const chi = [b.doc.cliente?.cognome, b.doc.cliente?.nome].filter(Boolean).join(' ') || 'cliente senza nome';
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modal-box operatore-box">
+    <h2 style="margin:0 0 6px">Valutazione non salvata</h2>
+    <p style="margin:0 0 6px">C'è una valutazione di <strong>${esc(chi)}</strong> rimasta senza «Salva»${b.operatore ? ` (operatore ${esc(b.operatore)})` : ''}, ultima modifica <strong>${quando}</strong>.</p>
+    <p class="muted small" style="margin:0 0 14px">Riprendila e poi salvala, oppure scartala se non serve più.</p>
+    <div class="toolbar" style="justify-content:flex-end"><button data-bozza="scarta" class="danger">Scarta</button><button data-bozza="riprendi" class="primary">Riprendi</button></div>
+  </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-bozza]')?.dataset.bozza;
+    if (a === 'riprendi') {
+      doc = normalize(b.doc); prev = b.prev || null; fileHandle = b.fileHandle || null; fileModificatoIl = b.fileModificatoIl || null;
+      m.remove();
+      renderAll();
+      markDirty(true);
+      mostraTab('anagrafica');
+      toast('Bozza ripresa: ricordati di premere «Salva».');
+    } else if (a === 'scarta' && confirm('Scartare definitivamente questa valutazione non salvata?')) {
+      m.remove();
+      elimina('bozza');
+      toast('Bozza scartata.');
+    }
+  });
 }
 
 // Piccolo indicatore accanto al nome di ogni scheda: cosa è già compilato
@@ -180,16 +239,21 @@ function renderAnagrafica() {
       ${select('cliente.dominante', [{ v: '', l: '—' }, 'Destro', 'Sinistro', 'Ambidestro'], 'Lato dominante')}
       ${field('cliente.professione', 'Professione / postura lavorativa')}
       ${field('cliente.attivita', 'Attività sportiva')}
-      ${field('cliente.trainer', 'Trainer di riferimento')}
+      <label class="field"><span>Trainer di riferimento</span><input type="text" data-path="cliente.trainer" list="lista-trainer" value="${esc(doc.cliente.trainer || '')}" autocomplete="off"><datalist id="lista-trainer"></datalist></label>
       ${field('cliente.motivo', 'Motivo della valutazione, dolori, interventi, note anamnestiche', 'textarea', 'wide')}
     </div></div>
     <div class="card"><div class="grid">
       ${field('valutazione.data', 'Data della valutazione', 'date')}
       ${field('valutazione.valutatore', 'Operatore')}
-      <div class="field wide">${checkbox('cliente.consenso', 'Il cliente ha dato il consenso informato alla valutazione e all\'acquisizione di foto e video')}</div>
+      <div class="field wide">${checkbox('cliente.consenso', 'Il cliente ha dato il consenso informato alla valutazione e all\'acquisizione di foto e video')} <button class="small" data-action="consenso-stampa" style="margin-top:8px;align-self:flex-start">Stampa il modulo di consenso</button></div>
     </div>
     <p class="muted small">L'altezza serve a convertire le misure delle foto in centimetri. I dati restano in questo Mac, nel file che salvi.</p></div>`;
   renderCalc();
+  // nomi dei trainer già usati nell'archivio: si scelgono dall'elenco e restano scritti uguali
+  trainerNoti().then((nomi) => {
+    const dl = $('#lista-trainer');
+    if (dl) dl.innerHTML = nomi.map((n) => `<option value="${esc(n)}"></option>`).join('');
+  });
 }
 
 function renderCalc() {
@@ -1143,7 +1207,11 @@ async function salva() {
     if (!cartellaCliente()) { toast('Inserisci cognome e nome del cliente (Anagrafica): servono per la sua cartella nell\'archivio.', 'err'); return; }
     if (await assicuraAccesso()) {
       try {
-        const r = await salvaInArchivio(json, cartellaCliente(), nomeFile(), fileHandle, fileModificatoIl);
+        const info = {
+          cliente: nomeCliente(doc), trainer: doc.cliente.trainer || '', operatore: doc.valutazione.valutatore || '',
+          ultimaValutazione: doc.valutazione.data || '', rivalutazione: doc.conclusioni.rivalutazione || '',
+        };
+        const r = await salvaInArchivio(json, cartellaCliente(), nomeFile(), fileHandle, fileModificatoIl, info);
         fileHandle = r.handle;
         fileModificatoIl = r.modificatoIl;
         markDirty(false);
@@ -1246,6 +1314,16 @@ const azioni = {
   home() { mostraHome(); },
   operatore() { chiediOperatore(false); },
   guida() { mostraGuida(); },
+  async 'consenso-stampa'() {
+    if (!nomeCliente(doc)) { toast('Inserisci prima cognome e nome del cliente.', 'err'); return; }
+    const rep = $('#report');
+    rep.innerHTML = consensoHtml(doc);
+    await Promise.all([...rep.querySelectorAll('img')].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
+    const t = document.title;
+    document.title = `Consenso - ${cartellaCliente()} - ${doc.valutazione.data || todayISO()}`;
+    window.print();
+    document.title = t;
+  },
   async 'guida-pdf'() {
     const rep = $('#report');
     rep.innerHTML = `<header class="r-testa"><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="r-logo">
@@ -1450,6 +1528,7 @@ function impostaOperatore(nome) {
 
 // Finestra «Chi sta usando l'app?»: obbligatoria all'apertura, facoltativa per cambiare operatore
 function chiediOperatore(obbligatoria) {
+  return new Promise((risolvi) => {
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML = `<div class="modal-box operatore-box">
@@ -1472,12 +1551,18 @@ function chiediOperatore(obbligatoria) {
     impostaOperatore(nome);
     m.remove();
     toast(`Buon lavoro, ${nome}.`);
+    risolvi();
   });
-  m.querySelector('[data-annulla]')?.addEventListener('click', () => m.remove());
+  m.querySelector('[data-annulla]')?.addEventListener('click', () => { m.remove(); risolvi(); });
+  });
 }
 
 renderOperatore();
-if (!profilo.nome) chiediOperatore(true);
+// all'apertura: prima l'operatore, poi l'eventuale bozza rimasta in sospeso
+(async () => {
+  if (!profilo.nome) await chiediOperatore(true);
+  await proponiBozza();
+})();
 // il nome non si conserva più tra una sessione e l'altra: si toglie quello salvato dalle versioni precedenti
 elimina('valutatore');
 
