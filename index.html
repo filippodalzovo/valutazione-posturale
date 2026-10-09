@@ -16,35 +16,43 @@
   <div id="app">
     <header class="topbar">
       <div class="brand">
-        <strong>Valutazione posturale</strong>
-        <span id="cliente-titolo" class="muted"></span>
+        <img src="icons/icon-192.png" alt="" class="logo">
+        <div class="brand-testi">
+          <span class="app-nome">Valutazione posturale</span>
+          <span id="cliente-titolo" class="cliente-nome">Nuova valutazione</span>
+          <span id="cliente-sotto" class="muted small"></span>
+        </div>
         <span id="stato-salvataggio" class="badge" hidden>Modifiche non salvate</span>
       </div>
       <nav class="actions">
         <button data-action="archivio">Archivio</button>
-        <button data-action="nuova">Nuova</button>
-        <button data-action="apri">Apri…</button>
-        <button data-action="salva" class="primary">Salva</button>
-        <button data-action="rivaluta" title="Nuova valutazione dello stesso cliente, con la precedente a confronto">Rivalutazione</button>
-        <button data-action="confronta" title="Carica una valutazione precedente solo per confronto">Confronta con…</button>
+        <details class="menu" id="menu-file"><summary>File</summary>
+          <div class="menu-lista">
+            <button data-action="nuova">Nuova valutazione</button>
+            <button data-action="apri">Apri un file…</button>
+            <button data-action="rivaluta">Rivalutazione dello stesso cliente</button>
+            <button data-action="confronta">Confronta con un file…</button>
+          </div>
+        </details>
         <button data-action="stampa">Report / PDF</button>
+        <button data-action="salva" class="primary">Salva</button>
       </nav>
     </header>
     <div id="prev-bar" class="prev-bar" hidden></div>
 
     <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="anagrafica" class="active">Anagrafica</button>
-      <button role="tab" data-tab="statica">Osservazione statica</button>
-      <button role="tab" data-tab="foto">Foto</button>
-      <button role="tab" data-tab="video">Video</button>
-      <button role="tab" data-tab="test">Test funzionali</button>
-      <button role="tab" data-tab="conclusioni">Conclusioni</button>
+      <button role="tab" data-tab="anagrafica" class="active">Anagrafica <span class="tab-stato" data-stato="anagrafica"></span></button>
+      <button role="tab" data-tab="foto">Foto <span class="tab-stato" data-stato="foto"></span></button>
+      <button role="tab" data-tab="statica">Osservazione statica <span class="tab-stato" data-stato="statica"></span></button>
+      <button role="tab" data-tab="video">Video <span class="tab-stato" data-stato="video"></span></button>
+      <button role="tab" data-tab="test">Test funzionali <span class="tab-stato" data-stato="test"></span></button>
+      <button role="tab" data-tab="conclusioni">Conclusioni <span class="tab-stato" data-stato="conclusioni"></span></button>
     </nav>
 
     <main>
       <section id="tab-anagrafica" class="tab"></section>
-      <section id="tab-statica" class="tab" hidden></section>
       <section id="tab-foto" class="tab" hidden></section>
+      <section id="tab-statica" class="tab" hidden></section>
       <section id="tab-video" class="tab" hidden></section>
       <section id="tab-test" class="tab" hidden></section>
       <section id="tab-conclusioni" class="tab" hidden></section>

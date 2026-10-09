@@ -12,6 +12,8 @@
 }
 
 * { box-sizing: border-box; }
+/* `hidden` deve vincere anche su display: flex/grid delle classi (es. .field, .grid) */
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -55,7 +57,20 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft
   background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.brand { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.brand .logo { width: 36px; height: 36px; border-radius: 9px; }
+.brand-testi { display: flex; flex-direction: column; line-height: 1.2; }
+.app-nome { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cliente-nome { font-size: 17px; font-weight: 650; }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 7px 12px; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary::after { content: " ▾"; color: var(--muted); }
+.menu[open] > summary { background: #f1f5f9; }
+.menu-lista { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 260px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(15,23,42,.12); padding: 6px; display: flex; flex-direction: column; }
+.menu-lista button { border: 0; text-align: left; border-radius: 6px; }
+.menu-lista button:hover { background: #f1f5f9; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .badge { background: var(--warn-soft); color: var(--warn); border-radius: 999px; padding: 1px 9px; font-size: 12px; }
 
@@ -74,6 +89,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft
   border-bottom: 2px solid transparent; white-space: nowrap; color: var(--muted);
 }
 .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-stato { font-size: 11px; font-weight: 600; color: #475569; background: #f1f5f9; border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
+.tab-stato:empty { display: none; }
+.tab-stato.ok { background: var(--accent-soft); color: var(--accent); }
 
 main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
 .tab > h2 { margin: 4px 0 14px; font-size: 20px; }
@@ -194,14 +212,23 @@ table.data th { color: var(--muted); font-weight: 500; }
 details.distretto > summary { cursor: pointer; font-size: 16px; padding: 2px 0; }
 details.distretto[open] > summary { margin-bottom: 8px; }
 .tcat h4, .derivati h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.trow { padding: 10px 0; border-top: 1px solid var(--line); }
-.trow.filled > .thead > strong::before { content: "● "; color: var(--accent); }
-.thead { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+.trow { padding: 8px 0; border-top: 1px solid var(--line); }
+.tmain { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.tnome { flex: 1 1 250px; min-width: 210px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.tnome > strong { font-weight: 600; }
+.trow.filled .tnome > strong::before { content: "● "; color: var(--accent); }
+.tvalori { flex: 0 1 auto; }
+.tvalori.largo { flex-basis: 100%; order: 3; }
+.tvalori .tin { margin-top: 0; }
+.tmain .tres { flex: 1 1 150px; }
+.tbtn { width: 24px; height: 24px; padding: 0; border-radius: 999px; font-size: 12px; line-height: 1; color: var(--muted); flex: none; }
+.tbtn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.tpiu { font-size: 14px; }
 .tag { font-size: 11px; background: #f1f5f9; color: #475569; border-radius: 6px; padding: 1px 6px; }
-.tinfo { flex-basis: 100%; font-size: 13px; color: #334155; }
-.tinfo > summary { cursor: pointer; color: var(--accent); font-size: 12px; display: inline; }
-.tinfo[open] { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-.tinfo[open] > div { margin-top: 4px; }
+.tinfo-box { font-size: 13px; color: #334155; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
+.tinfo-box > div + div { margin-top: 4px; }
+.textra { margin-top: 6px; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
+.textra .tfoto { margin-top: 0; }
 .liv { font-size: 11px; border-radius: 6px; padding: 0 6px; }
 .liv-solido { background: #dcfce7; color: #166534; }
 .liv-indicativo { background: #fef9c3; color: #854d0e; }
@@ -212,8 +239,7 @@ details.distretto[open] > summary { margin-bottom: 8px; }
 .tfield.nrs input { width: 62px; }
 .orto-lato { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; padding: 4px 10px 4px 0; }
 .orto-lato > strong { align-self: center; font-size: 13px; min-width: 22px; }
-.tfoot { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 6px; }
-.tnote { flex: 1 1 220px; max-width: 420px; padding: 5px 8px !important; font-size: 13px; }
+.tnote { max-width: 520px; padding: 5px 8px !important; font-size: 13px; }
 .tres { display: flex; flex-wrap: wrap; gap: 6px; }
 .res { font-size: 12px; border-radius: 6px; padding: 2px 8px; }
 .r-ok { background: #dcfce7; color: #166534; }

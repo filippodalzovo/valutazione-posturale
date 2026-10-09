@@ -7,7 +7,7 @@ import { initTestFoto, fotoStripHtml, gestisciClick } from './test-foto.js';
 import { movimento, movimentoPerTest } from './movimenti.js';
 
 let app = null; // { getDoc, getPrev, markDirty, toast }
-const stato = { q: '', solo: false, aperti: new Set() };
+const stato = { q: '', solo: false, aperti: new Set(), extra: new Set() };
 
 const LIV_CLASS = { ok: 'r-ok', att: 'r-att', basso: 'r-basso', alto: 'r-ok', info: 'r-info' };
 
@@ -27,6 +27,10 @@ export function initTestUI(api) {
   }, true);
   root.addEventListener('click', (e) => {
     if (gestisciClick(e)) return;
+    const ti = e.target.closest('[data-tinfo]');
+    if (ti) { const b = $(`[data-tinfo-box="${ti.dataset.tinfo}"]`); b.hidden = !b.hidden; ti.classList.toggle('on', !b.hidden); return; }
+    const tm = e.target.closest('[data-tmore]');
+    if (tm) { const id = tm.dataset.tmore; stato.extra.has(id) ? stato.extra.delete(id) : stato.extra.add(id); aggiornaExtra(id); return; }
     const vadd = e.target.closest('[data-vadd]');
     if (vadd) { app.apriVideoPerTest(vadd.dataset.vadd, vadd.dataset.lato); return; }
     const vgo = e.target.closest('[data-vgo]');
@@ -90,13 +94,14 @@ function inputs(t) {
   }
 }
 
+// Riquadro informativo (come si esegue, criterio, riferimento), aperto con «i»
 function info(t) {
   const righe = [
     t.es ? `<div><strong>Come si esegue:</strong> ${esc(t.es)}</div>` : '',
     t.pos ? `<div><strong>${t.c === 'O' ? 'Positivo se' : 'Alterato se'}:</strong> ${esc(t.pos)}</div>` : '',
     t.ref || t.fonte ? `<div><strong>Riferimento:</strong> ${esc(t.ref || '')}${t.fonte ? ` <span class="muted">— ${esc(t.fonte)}</span>` : ''}${t.liv ? ` <span class="liv liv-${t.liv}">${t.liv}</span>` : ''}</div>` : '',
   ].filter(Boolean);
-  return righe.length ? `<details class="tinfo"><summary>info</summary>${righe.join('')}</details>` : '';
+  return righe.join('');
 }
 
 function riga(t, prevDefs) {
@@ -104,16 +109,25 @@ function riga(t, prevDefs) {
   const pt = prev ? valueText(prevDefs.get(t.id) || t, prev.test?.[t.id]) : '';
   const search = [t.nome, t.alias, t.d, DISTRETTI.find((d) => d.id === t.d)?.nome, CATEGORIE[t.c], ...(t.pop || []).map((p) => POP_LABEL[p])]
     .filter(Boolean).join(' ').toLowerCase();
+  const inf = info(t);
+  const largo = ['check', 'punteggi'].includes(t.tipo);
   return `<div class="trow" data-test="${t.id}" data-search="${esc(search)}">
-    <div class="thead"><strong>${esc(t.nome)}</strong>
-      ${(t.pop || []).map((p) => `<span class="tag">${POP_LABEL[p]}</span>`).join('')}
-      ${pt ? `<span class="prev-chip">Prima: ${esc(pt)}</span>` : ''}
-      ${t.c === 'P' ? `<button class="small danger" data-del-custom="${t.id}" title="Elimina questo test personalizzato">×</button>` : ''}
-      ${info(t)}</div>
-    ${inputs(t)}
-    <div class="tfoto" data-tfoto="${t.id}">${fotoStripHtml(t)}</div>
-    <div class="tfoto" data-tvideo="${t.id}">${videoHtml(t)}</div>
-    <div class="tfoot">${inputNoteHtml(t)}<div class="tres" data-res="${t.id}"></div></div>
+    <div class="tmain">
+      <div class="tnome"><strong>${esc(t.nome)}</strong>
+        ${inf ? `<button class="tbtn" data-tinfo="${t.id}" title="Come si esegue e riferimenti">i</button>` : ''}
+        ${(t.pop || []).map((p) => `<span class="tag">${POP_LABEL[p]}</span>`).join('')}
+        ${pt ? `<span class="prev-chip">Prima: ${esc(pt)}</span>` : ''}
+        ${t.c === 'P' ? `<button class="small danger" data-del-custom="${t.id}" title="Elimina questo test personalizzato">×</button>` : ''}</div>
+      <div class="tvalori${largo ? ' largo' : ''}">${inputs(t)}</div>
+      <div class="tres" data-res="${t.id}"></div>
+      <button class="tbtn tpiu" data-tmore="${t.id}" title="Foto, video e note">＋</button>
+    </div>
+    ${inf ? `<div class="tinfo-box" data-tinfo-box="${t.id}" hidden>${inf}</div>` : ''}
+    <div class="textra" data-textra="${t.id}" hidden>
+      <div class="tfoto" data-tfoto="${t.id}">${fotoStripHtml(t)}</div>
+      <div class="tfoto" data-tvideo="${t.id}">${videoHtml(t)}</div>
+      ${inputNoteHtml(t)}
+    </div>
   </div>`;
 }
 
@@ -135,6 +149,7 @@ export function aggiornaVideoTest(id) {
   const el = $(`[data-tvideo="${id}"]`);
   const t = testById(id);
   if (el && t) el.innerHTML = videoHtml(t);
+  aggiornaExtra(id);
 }
 
 function inputNoteHtml(t) {
@@ -191,6 +206,16 @@ function testById(id) {
   return allTests(doc()).find((t) => t.id === id);
 }
 
+// La zona foto/video/note si vede se aperta a mano o se contiene qualcosa
+function aggiornaExtra(id) {
+  const box = $(`[data-textra="${id}"]`);
+  if (!box) return;
+  const v = doc().test?.[id];
+  const pieno = !!(v?.note || v?.foto?.length || (doc().video || []).some((e) => e.testId === id));
+  box.hidden = !(pieno || stato.extra.has(id));
+  $(`[data-tmore="${id}"]`)?.classList.toggle('on', !box.hidden);
+}
+
 function aggiornaRisultato(id) {
   const el = $(`[data-res="${id}"]`);
   if (!el) return;
@@ -199,6 +224,7 @@ function aggiornaRisultato(id) {
   const r = valuta(t, v, contesto(doc()));
   el.innerHTML = r.map((x) => `<span class="res ${LIV_CLASS[x.liv] || 'r-info'}">${esc(x.txt)}</span>`).join('');
   $(`[data-test="${id}"]`)?.classList.toggle('filled', compilato(t, v));
+  aggiornaExtra(id);
 }
 
 function aggiornaDerivati() {

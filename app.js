@@ -1,7 +1,7 @@
 import { CHECKLIST, VISTE, LATI, GRADI } from './defs.js';
 import { MOVIMENTI, GRUPPI_MOV, VISTE_VIDEO, PUNTI_LIBERI, movimento, movimentoPerTest } from './movimenti.js';
 import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggiornaVideoTest } from './tests-ui.js';
-import { testRiepilogoLines, allTests } from './tests-logic.js';
+import { testRiepilogoLines, allTests, compilato } from './tests-logic.js';
 import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello } from './archivio.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi } from './impostazioni.js';
@@ -56,6 +56,32 @@ const sessionVideo = { id: null, frames: null, mov: null, ctx: null }; // il vid
 function markDirty(v = true) {
   dirty = v;
   $('#stato-salvataggio').hidden = !v;
+  renderStatoSchede();
+}
+
+// Piccolo indicatore accanto al nome di ogni scheda: cosa è già compilato
+function renderStatoSchede() {
+  const set = (k, txt, ok, titolo = '') => {
+    const el = $(`[data-stato="${k}"]`);
+    if (!el) return;
+    el.textContent = txt;
+    el.classList.toggle('ok', !!ok);
+    el.title = titolo;
+  };
+  set('anagrafica', nomeCliente(doc) ? '✓' : '', !!nomeCliente(doc));
+  const nf = VISTE.filter((v) => doc.foto[v.id]).length;
+  set('foto', nf ? `${nf}/4` : '', nf === 4, `${nf} viste su 4`);
+  const ns = Object.values(doc.statica).filter((s) => s?.on).length;
+  let pendenti = 0;
+  if (nf) {
+    const sg = calcolaSuggerimenti(doc, soglie);
+    pendenti = Object.entries(sg).filter(([id, g]) => g.on && !uguale(doc.statica[id], g)).length;
+  }
+  set('statica', `${ns || ''}${pendenti ? ' •' : ''}`.trim(), false, pendenti ? `${pendenti} suggerimenti dalle foto da vedere` : `${ns} rilievi`);
+  set('video', doc.video.length ? String(doc.video.length) : '', false, 'analisi video');
+  const nt = allTests(doc).filter((t) => compilato(t, doc.test?.[t.id])).length;
+  set('test', nt ? String(nt) : '', false, 'test compilati');
+  set('conclusioni', doc.conclusioni.sintesi?.trim() ? '✓' : '', !!doc.conclusioni.sintesi?.trim());
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -98,7 +124,7 @@ function onFieldChange(e) {
   markDirty();
 
   if (path.startsWith('statica.') && path.endsWith('.on')) el.closest('.voce')?.classList.toggle('on', el.checked);
-  if (path.startsWith('cliente.')) { renderCalc(); renderHeader(); }
+  if (path.startsWith('cliente.') || path === 'valutazione.data') { renderCalc(); renderHeader(); }
   if (path.startsWith('test.')) onTestFieldChange(path);
   if (path === 'cliente.nascita' || path === 'cliente.sesso' || path === 'valutazione.data') refreshTestResults();
   if (path === 'cliente.altezza' || path.endsWith('.calib.cm')) { renderMisure(); editor?.draw(); }
@@ -108,7 +134,10 @@ function onFieldChange(e) {
 
 function renderHeader() {
   const n = nomeCliente(doc);
-  $('#cliente-titolo').textContent = n ? `— ${n}` : '';
+  $('#cliente-titolo').textContent = n || 'Nuova valutazione';
+  const e = eta(doc.cliente.nascita, doc.valutazione.data || todayISO());
+  $('#cliente-sotto').textContent = [e != null && e >= 0 ? `${e} anni` : '', doc.valutazione.data ? `valutazione del ${fmtDate(doc.valutazione.data)}` : '']
+    .filter(Boolean).join(' · ');
   document.title = n ? `Valutazione posturale — ${n}` : 'Valutazione posturale';
 }
 
@@ -1102,6 +1131,7 @@ function conferma(msg) {
 }
 
 function renderAll() {
+  renderStatoSchede();
   renderHeader();
   renderPrevBar();
   renderAnagrafica();
@@ -1227,6 +1257,8 @@ const azioni = {
 };
 
 document.addEventListener('click', (e) => {
+  // il menu «File» si chiude cliccando una voce o fuori
+  for (const m of $$('details.menu[open]')) if (!m.contains(e.target) || e.target.closest('[data-action]')) m.open = false;
   const a = e.target.closest('[data-action]');
   if (a && azioni[a.dataset.action]) { azioni[a.dataset.action](a); return; }
 
