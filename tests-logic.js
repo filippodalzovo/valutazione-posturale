@@ -92,6 +92,7 @@ export function valuta(t, v, ctx) {
       const u = unitaTxt(t);
       let txt = `Δ ${r1(d)}${u}`;
       let liv = 'info';
+      let peggioreLato = '';
       const max = Math.max(Math.abs(sx), Math.abs(dx));
       if (max > 0 && sx >= 0 && dx >= 0 && t.meglio) {
         // LSI = lato peggiore / migliore
@@ -100,9 +101,10 @@ export function valuta(t, v, ctx) {
         txt += ` · simmetria ${Math.round(lsi)}%${sx !== dx ? ` (${peggiore} inferiore)` : ''}`;
         if (t.sim?.lsi && lsi < t.sim.lsi) liv = 'basso';
         else if (t.sim?.lsi) liv = 'ok';
+        if (sx !== dx) peggioreLato = peggiore;
       }
       if (t.sim?.diff != null) liv = d >= t.sim.diff ? 'basso' : 'ok';
-      out.push({ txt, liv });
+      out.push({ txt, liv, lato: peggioreLato });
     }
   }
 
@@ -112,7 +114,7 @@ export function valuta(t, v, ctx) {
       if (NORME_PER_LATO.has(t.norma)) {
         for (const s of ['sx', 'dx']) {
           const n = num(v[s]);
-          if (n != null) { const r = f(n, ctx); out.push({ ...r, txt: `${s}: ${r.txt}` }); }
+          if (n != null) { const r = f(n, ctx); out.push({ ...r, txt: `${s}: ${r.txt}`, lato: s }); }
         }
       } else {
         const vals = ['sx', 'dx'].map((s) => num(v[s])).filter((x) => x != null);
@@ -144,7 +146,7 @@ export function valuta(t, v, ctx) {
     const lati = t.tipo === 'orto' ? [['', v.valore]] : [['sx', v.sx], ['dx', v.dx]];
     const posit = lati.filter(([, e]) => e === 'pos').map(([s]) => s);
     // solo evidenza a schermo: nel testo l'esito è già scritto
-    if (posit.length) out.push({ txt: t.tipo === 'orto' ? 'Positivo' : `Positivo ${posit.join(' e ')}`, liv: 'basso', soloUI: true });
+    if (posit.length) out.push({ txt: t.tipo === 'orto' ? 'Positivo' : `Positivo ${posit.join(' e ')}`, liv: 'basso', soloUI: true, positivo: true, lato: posit.length === 2 ? 'bil' : posit[0] });
   }
   return out;
 }

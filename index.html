@@ -25,12 +25,13 @@
         <span id="stato-salvataggio" class="badge" hidden>Modifiche non salvate</span>
       </div>
       <nav class="actions">
-        <button data-action="archivio">Archivio</button>
+        <button data-action="home">Clienti</button>
         <details class="menu" id="menu-file"><summary>File</summary>
           <div class="menu-lista">
             <button data-action="nuova">Nuova valutazione</button>
             <button data-action="apri">Apri un file…</button>
             <button data-action="rivaluta">Rivalutazione dello stesso cliente</button>
+            <button data-action="archivio">Confronta con una valutazione in archivio…</button>
             <button data-action="confronta">Confronta con un file…</button>
           </div>
         </details>
@@ -46,15 +47,18 @@
       <button role="tab" data-tab="statica">Osservazione statica <span class="tab-stato" data-stato="statica"></span></button>
       <button role="tab" data-tab="video">Video <span class="tab-stato" data-stato="video"></span></button>
       <button role="tab" data-tab="test">Test funzionali <span class="tab-stato" data-stato="test"></span></button>
+      <button role="tab" data-tab="riepilogo">Riepilogo <span class="tab-stato" data-stato="riepilogo"></span></button>
       <button role="tab" data-tab="conclusioni">Conclusioni <span class="tab-stato" data-stato="conclusioni"></span></button>
     </nav>
 
     <main>
-      <section id="tab-anagrafica" class="tab"></section>
+      <section id="home" hidden></section>
+      <section id="tab-anagrafica" class="tab" hidden></section>
       <section id="tab-foto" class="tab" hidden></section>
       <section id="tab-statica" class="tab" hidden></section>
       <section id="tab-video" class="tab" hidden></section>
       <section id="tab-test" class="tab" hidden></section>
+      <section id="tab-riepilogo" class="tab" hidden></section>
       <section id="tab-conclusioni" class="tab" hidden></section>
     </main>
   </div>

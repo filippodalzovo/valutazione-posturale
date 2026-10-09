@@ -1,8 +1,9 @@
 import { CHECKLIST, VISTE, LATI, GRADI } from './defs.js';
 import { MOVIMENTI, GRUPPI_MOV, VISTE_VIDEO, PUNTI_LIBERI, movimento, movimentoPerTest } from './movimenti.js';
 import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggiornaVideoTest } from './tests-ui.js';
-import { testRiepilogoLines, allTests, compilato } from './tests-logic.js';
-import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello } from './archivio.js';
+import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-logic.js';
+import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome } from './archivio.js';
+import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
@@ -82,6 +83,8 @@ function renderStatoSchede() {
   const nt = allTests(doc).filter((t) => compilato(t, doc.test?.[t.id])).length;
   set('test', nt ? String(nt) : '', false, 'test compilati');
   set('conclusioni', doc.conclusioni.sintesi?.trim() ? '✓' : '', !!doc.conclusioni.sintesi?.trim());
+  const nr = raccogliRilievi(doc, contesto(doc)).length;
+  set('riepilogo', nr ? String(nr) : '', false, 'rilievi');
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -143,7 +146,7 @@ function renderHeader() {
 
 function renderPrevBar() {
   const bar = $('#prev-bar');
-  if (!prev) { bar.hidden = true; return; }
+  if (!prev || inHome) { bar.hidden = true; return; }
   const diverso = nomeCliente(prev) && nomeCliente(doc) && nomeCliente(prev).toLowerCase() !== nomeCliente(doc).toLowerCase();
   bar.hidden = false;
   bar.innerHTML = `<span>Confronto con la valutazione del <strong>${fmtDate(prev.valutazione?.data) || '—'}</strong>${nomeCliente(prev) ? ` (${esc(nomeCliente(prev))})` : ''}: i valori precedenti sono in blu.</span>
@@ -269,6 +272,84 @@ function applicaSuggerimento(id) {
 
 async function salvaSoglie() {
   await scrivi('soglieSuggerimenti', soglie);
+}
+
+// ---------- riepilogo ----------
+
+const VISTE_NOMI = Object.fromEntries(VISTE.map((v) => [v.id, v.label.toLowerCase()]));
+
+// Righe di confronto con la valutazione precedente: { gruppo, nome, prima, ora, unita, verso }
+function confrontoPrecedente() {
+  if (!prev) return [];
+  const righe = [];
+  const verso = (delta, meglio, soglia = 0.5) => (Math.abs(delta) < soglia || !meglio ? 'neutro' : (meglio === 'alto') === (delta > 0) ? 'meglio' : 'peggio');
+  // foto: per le misure posturali più vicino a zero è meglio
+  for (const v of VISTE) {
+    const f = doc.foto[v.id], pf = prev.foto?.[v.id];
+    if (!f?.lm || !pf?.lm) continue;
+    const m = staticMeasures(v.id, f.lm, f, Number(doc.cliente.altezza) || null);
+    const pm = staticMeasures(v.id, pf.lm, pf, Number(prev.cliente?.altezza) || null);
+    const pmap = new Map(pm.items.map((i) => [i.id, i]));
+    for (const it of m.items) {
+      const p = pmap.get(it.id);
+      if (it.value == null || p?.value == null) continue;
+      righe.push({ gruppo: `Foto ${VISTE_NOMI[v.id]}`, nome: it.label, prima: p.value, ora: it.value, unita: it.unit, verso: verso(it.value - p.value, 'basso') });
+    }
+  }
+  // test con valori numerici
+  for (const t of allTests(doc)) {
+    const a = doc.test?.[t.id], b = prev.test?.[t.id];
+    if (!a || !b) continue;
+    const campi = t.tipo === 'num' ? [['valore', '']] : t.tipo === 'bilat_num' ? [['sx', ' sx'], ['dx', ' dx']] : [];
+    for (const [k, lab] of campi) {
+      const ora = num(a[k]), prima = num(b[k]);
+      if (ora == null || prima == null) continue;
+      righe.push({ gruppo: 'Test', nome: `${t.nome}${lab}`, prima, ora, unita: t.unita || '', verso: verso(ora - prima, t.meglio, 0.01) });
+    }
+  }
+  // video dello stesso movimento e vista: ampiezza massima
+  for (const e of doc.video) {
+    const pe = prev.video?.find((x) => x.esercizio === e.esercizio && x.vista === e.vista);
+    for (const [k, x] of Object.entries(e.riepilogo?.estremi || {})) {
+      const px = pe?.riepilogo?.estremi?.[k];
+      if (!x || !px) continue;
+      righe.push({ gruppo: `Video: ${e.nomeMov || e.esercizio}`, nome: etichettaSerie(e, k).replace(/ \(°\)$/, ''), prima: px.max, ora: x.max, unita: '°', verso: 'neutro' });
+    }
+  }
+  return righe;
+}
+
+function renderRiepilogo() {
+  const ril = raccogliRilievi(doc, contesto(doc));
+  const zone = rilieviPerZona(ril);
+  const conf = confrontoPrecedente();
+  const fmt = (n, u) => `${round(n, 1)}${u === '°' ? '°' : u ? ` ${u}` : ''}`;
+  const freccia = { meglio: '▲', peggio: '▼', neutro: '•' };
+  const prevRil = prev ? raccogliRilievi(prev, contesto(prev)).length : null;
+  $('#tab-riepilogo').innerHTML = `
+    <h2>Riepilogo</h2>
+    <div class="riep-grid">
+      <div class="card">
+        <div class="sagome">
+          <figure>${sagomaSvg(ril, 'anteriore')}<figcaption>Davanti</figcaption></figure>
+          <figure>${sagomaSvg(ril, 'posteriore')}<figcaption>Dietro</figcaption></figure>
+        </div>
+        <div class="legend" style="justify-content:center;margin-top:8px">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${NOMI_SEV[s]}</span>`).join('')}</div>
+      </div>
+      <div class="card">
+        <h3>Rilievi <span class="muted small">(${ril.length}${prevRil != null ? ` · prima ${prevRil}` : ''})</span></h3>
+        ${zone.length ? zone.map((z) => `<div class="zona-ril"><strong>${esc(z.nome)}</strong><ul>
+          ${z.voci.map((r) => `<li><i class="pallino" style="background:${COLORI_SEV[r.sev]}"></i>${esc(r.testo)}</li>`).join('')}</ul></div>`).join('')
+        : '<p class="muted">Nessun rilievo: spunta le voci dell\'osservazione statica (anche dai suggerimenti delle foto) e compila i test.</p>'}
+      </div>
+    </div>
+    ${prev ? `<div class="card"><h3>Rispetto alla valutazione del ${fmtDate(prev.valutazione?.data)}</h3>
+      ${conf.length ? `<div class="scroll-x"><table class="data confronto"><tr><th>Misura</th><th>Prima</th><th>Ora</th><th>Variazione</th></tr>
+        ${conf.map((r, i) => `${i === 0 || conf[i - 1].gruppo !== r.gruppo ? `<tr class="gruppo"><td colspan="4">${esc(r.gruppo)}</td></tr>` : ''}
+          <tr><td>${esc(r.nome)}</td><td>${fmt(r.prima, r.unita)}</td><td>${fmt(r.ora, r.unita)}</td>
+          <td class="var-${r.verso}">${freccia[r.verso]} ${r.ora - r.prima > 0 ? '+' : ''}${fmt(r.ora - r.prima, r.unita)}</td></tr>`).join('')}</table></div>
+        <p class="muted small">▲ verde = migliorato · ▼ rosso = peggiorato · • = variazione minima o senza un verso «migliore» definito.</p>`
+      : '<p class="muted">Nessuna misura presente in entrambe le valutazioni.</p>'}</div>` : ''}`;
 }
 
 // ---------- conclusioni ----------
@@ -1149,6 +1230,7 @@ function caricaDoc(d, handle) {
   $('#player').hidden = true;
   markDirty(false);
   renderAll();
+  mostraTab('riepilogo');
   toast(`Aperta la valutazione di ${nomeCliente(doc) || 'cliente'} del ${fmtDate(doc.valutazione.data)}.`);
 }
 
@@ -1164,6 +1246,7 @@ function nuovaRivalutazione(base) {
   $('#player').hidden = true;
   markDirty(true);
   renderAll();
+  mostraTab('anagrafica');
   toast(`Nuova rivalutazione. A confronto: la valutazione del ${fmtDate(prev.valutazione.data)}.`);
 }
 
@@ -1182,6 +1265,8 @@ const azioni = {
     if (r) caricaDoc(r.doc, r.handle);
   },
   archivio() { apriPannello(); },
+  home() { mostraHome(); },
+  torna() { mostraTab(ultimaTab); },
   salva,
   rivaluta() {
     if (!nomeCliente(doc)) { toast('Apri prima la valutazione precedente del cliente.'); return; }
@@ -1288,9 +1373,41 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ---------- pagina iniziale ----------
+
+let inHome = false;
+let ultimaTab = 'anagrafica';
+
+function mostraHome() {
+  inHome = true;
+  $('.tabs').hidden = true;
+  $$('main > .tab').forEach((s) => (s.hidden = true));
+  $('#prev-bar').hidden = true;
+  const home = $('#home');
+  home.hidden = false;
+  const inCorso = nomeCliente(doc) || dirty;
+  home.innerHTML = `<div class="home-top">
+      <div><h2>Valutazioni posturali</h2>
+        <p class="muted">Inizia una nuova valutazione o riprendi quella di un cliente dall'archivio.</p></div>
+      <div class="toolbar">
+        <button class="primary grande" data-action="nuova">+ Nuova valutazione</button>
+        <button data-action="apri">Apri un file…</button>
+        ${inCorso ? `<button data-action="torna">Torna a ${esc(nomeCliente(doc) || 'valutazione in corso')}</button>` : ''}
+      </div></div>
+    <div class="card" id="home-archivio"></div>`;
+  renderHome($('#home-archivio'));
+  window.scrollTo(0, 0);
+}
+
 function mostraTab(id) {
+  inHome = false;
+  ultimaTab = id;
+  $('#home').hidden = true;
+  $('.tabs').hidden = false;
+  renderPrevBar();
   $$('.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
   $$('main > .tab').forEach((s) => (s.hidden = s.id !== `tab-${id}`));
+  if (id === 'riepilogo') renderRiepilogo();
   if (id === 'foto') editor.layout();
   if (id === 'video') renderVideoList();
   if (id === 'statica') renderStatica(); // le foto possono essere cambiate nel frattempo
@@ -1302,6 +1419,7 @@ buildFotoTab();
 buildVideoTab();
 initTestUI({ getDoc: () => doc, getPrev: () => prev, markDirty, toast, apriVideoPerTest, vaiAlVideo });
 renderAll();
+mostraHome();
 
 // Soglie dei suggerimenti: valori predefiniti finché non arrivano quelle salvate
 leggi('soglieSuggerimenti').then((s) => { if (s) { soglie = { ...SOGLIE_DEFAULT, ...s }; renderStatica(); } });

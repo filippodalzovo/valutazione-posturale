@@ -201,6 +201,33 @@ table.data th { color: var(--muted); font-weight: 500; }
 .sugg-tag { font-size: 12px; background: #e0f2fe; color: #075985; border-radius: 6px; padding: 2px 8px; }
 .sugg-tag.norma { background: #f1f5f9; color: #475569; }
 
+/* pagina iniziale */
+.home-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 6px 0 18px; }
+.home-top h2 { margin: 0 0 4px; font-size: 24px; }
+.home-top p { margin: 0; }
+button.grande { padding: 11px 18px; font-size: 16px; font-weight: 600; }
+.recenti { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.recente { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #fbfdfd; }
+.cliente-card > summary { cursor: pointer; }
+
+/* riepilogo */
+.riep-grid { display: grid; gap: 14px; grid-template-columns: minmax(300px, 1fr) minmax(300px, 1.2fr); align-items: start; }
+.sagome { display: flex; gap: 10px; justify-content: center; }
+.sagome figure { margin: 0; flex: 1; max-width: 230px; text-align: center; }
+.sagome svg { width: 100%; height: auto; }
+.sagome figcaption { font-size: 12px; color: var(--muted); }
+.zona-ril { padding: 8px 0; border-top: 1px solid var(--line); }
+.zona-ril:first-of-type { border-top: 0; }
+.zona-ril ul { margin: 4px 0 0; padding-left: 0; list-style: none; }
+.zona-ril li { font-size: 14px; padding: 2px 0; display: flex; gap: 8px; align-items: baseline; }
+.pallino { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+table.confronto td:nth-child(n+2), table.confronto th:nth-child(n+2) { text-align: right; }
+table.confronto tr.gruppo td { text-align: left !important; font-weight: 600; color: var(--muted); padding-top: 12px; }
+.var-meglio { color: #15803d; font-weight: 600; }
+.var-peggio { color: #b91c1c; font-weight: 600; }
+.var-neutro { color: var(--muted); }
+@media (max-width: 860px) { .riep-grid { grid-template-columns: 1fr; } }
+
 /* test funzionali */
 .test-tools .toolbar { margin-bottom: 10px; }
 .proto-row { display: flex; gap: 10px; align-items: baseline; margin-top: 8px; flex-wrap: wrap; }

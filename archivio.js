@@ -94,7 +94,23 @@ export async function salvaInArchivio(testo, cartellaCliente, nomeFile, aperto) 
   return fh;
 }
 
-// ---------- pannello ----------
+// ---------- pannello e pagina iniziale ----------
+
+// Gestione comune dei pulsanti dell'archivio (pannello a comparsa e pagina iniziale)
+async function gestisci(e, ridisegna, chiudiDopo) {
+  const b = e.target.closest('[data-arch]');
+  if (!b) return;
+  const a = b.dataset.arch;
+  if (a === 'chiudi') chiudi();
+  else if (a === 'scegli') { await scegliCartella(); ridisegna(); }
+  else if (a === 'consenti') { await assicuraAccesso(); ridisegna(); }
+  else if (['apri', 'confronta', 'rivaluta'].includes(a)) await azioneFile(a, b.dataset.cliente, b.dataset.file, chiudiDopo);
+}
+
+function filtra(root, valore) {
+  filtro = valore.trim().toLowerCase();
+  for (const c of root.querySelectorAll('[data-cliente-card]')) c.hidden = filtro && !c.dataset.clienteCard.toLowerCase().includes(filtro);
+}
 
 function costruisciPannello() {
   const m = document.createElement('div');
@@ -105,28 +121,18 @@ function costruisciPannello() {
     <div class="modal-head"><strong>Archivio clienti</strong><button data-arch="chiudi">Chiudi</button></div>
     <div id="arch-body"></div></div>`;
   document.body.appendChild(m);
-  m.addEventListener('click', async (e) => {
+  m.addEventListener('click', (e) => {
     if (e.target === m) { chiudi(); return; }
-    const b = e.target.closest('[data-arch]');
-    if (!b) return;
-    const a = b.dataset.arch;
-    if (a === 'chiudi') chiudi();
-    else if (a === 'scegli') await scegliCartella();
-    else if (a === 'consenti') { await assicuraAccesso(); renderPannello(); }
-    else if (['apri', 'confronta', 'rivaluta'].includes(a)) await azioneFile(a, b.dataset.cliente, b.dataset.file);
+    gestisci(e, () => renderArchivio($('#arch-body')), true);
   });
-  m.addEventListener('input', (e) => {
-    if (e.target.id !== 'arch-cerca') return;
-    filtro = e.target.value.trim().toLowerCase();
-    for (const c of m.querySelectorAll('[data-cliente-card]')) c.hidden = filtro && !c.dataset.clienteCard.toLowerCase().includes(filtro);
-  });
+  m.addEventListener('input', (e) => { if (e.target.id === 'arch-cerca') filtra(m, e.target.value); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) chiudi(); });
 }
 
 export async function apriPannello() {
   $('#arch-modal').hidden = false;
   document.body.style.overflow = 'hidden';
-  await renderPannello();
+  await renderArchivio($('#arch-body'));
 }
 
 function chiudi() {
@@ -134,11 +140,26 @@ function chiudi() {
   document.body.style.overflow = '';
 }
 
-async function renderPannello() {
-  const body = $('#arch-body');
+// Pagina iniziale: stesso elenco, con i clienti più recenti in evidenza
+let homeLegata = false;
+export async function renderHome(box) {
+  if (!homeLegata) {
+    homeLegata = true;
+    box.addEventListener('click', (e) => gestisci(e, () => renderArchivio(box, { home: true }), false));
+    box.addEventListener('input', (e) => { if (e.target.id === 'arch-cerca') filtra(box, e.target.value); });
+  }
+  await renderArchivio(box, { home: true });
+}
+
+const pulsantiFile = (c, v, conConfronto = true) => `
+  <button class="small primary" data-arch="apri" data-cliente="${esc(c)}" data-file="${esc(v)}">Apri</button>
+  ${conConfronto ? `<button class="small" data-arch="confronta" data-cliente="${esc(c)}" data-file="${esc(v)}" title="Mostra i valori di questa valutazione accanto a quella aperta">Confronta</button>` : ''}
+  <button class="small" data-arch="rivaluta" data-cliente="${esc(c)}" data-file="${esc(v)}" title="Nuova valutazione dello stesso cliente con questa a confronto">Rivalutazione</button>`;
+
+async function renderArchivio(body, { home = false } = {}) {
   const s = await stato();
   if (s === 'non-supportato') {
-    body.innerHTML = '<p>L\'archivio richiede <strong>Chrome</strong> o <strong>Edge</strong>. Con questo browser puoi comunque usare «Apri…» e «Salva».</p>';
+    body.innerHTML = '<p>L\'archivio richiede <strong>Chrome</strong> o <strong>Edge</strong>. Con questo browser puoi comunque usare «Apri un file…» e «Salva».</p>';
     return;
   }
   if (s === 'assente') {
@@ -161,29 +182,32 @@ async function renderPannello() {
     body.innerHTML = `<p>Non riesco a leggere la cartella «${esc(dir.name)}». È stata spostata o rinominata?</p><button class="primary" data-arch="scegli">Scegli la cartella dell'archivio</button>`;
     return;
   }
-  body.innerHTML = `<div class="toolbar" style="justify-content:space-between">
-      <span class="muted small">Cartella: <strong>${esc(dir.name)}</strong> · ${clienti.length} clienti</span>
+  const recenti = home
+    ? [...clienti].filter((c) => c.valutazioni[0].data).sort((a, b) => b.valutazioni[0].data.localeCompare(a.valutazioni[0].data)).slice(0, 6)
+    : [];
+  body.innerHTML = `
+    ${recenti.length ? `<h3 style="margin:0 0 8px">Recenti</h3><div class="recenti">${recenti.map((c) => `<div class="recente">
+        <div><strong>${esc(c.nome)}</strong><div class="muted small">ultima ${fmtDate(c.valutazioni[0].data)} · ${c.valutazioni.length} valutazion${c.valutazioni.length === 1 ? 'e' : 'i'}</div></div>
+        <div class="toolbar">${pulsantiFile(c.nome, c.valutazioni[0].nome, false)}</div></div>`).join('')}</div>` : ''}
+    <div class="toolbar" style="justify-content:space-between;margin-top:${recenti.length ? 18 : 0}px">
+      <span class="muted small">${home ? '<strong style="color:var(--ink);font-size:15px">Tutti i clienti</strong> · ' : ''}Cartella: <strong>${esc(dir.name)}</strong> · ${clienti.length} clienti</span>
       <button class="small" data-arch="scegli">Cambia cartella</button></div>
     <input type="search" id="arch-cerca" placeholder="Cerca un cliente…" value="${esc(filtro)}" style="margin:8px 0 12px">
-    ${clienti.length ? clienti.map((c) => `<details class="card" data-cliente-card="${esc(c.nome)}"${filtro && !c.nome.toLowerCase().includes(filtro) ? ' hidden' : ''}>
+    ${clienti.length ? clienti.map((c) => `<details class="card cliente-card" data-cliente-card="${esc(c.nome)}"${filtro && !c.nome.toLowerCase().includes(filtro) ? ' hidden' : ''}>
       <summary><strong>${esc(c.nome)}</strong> <span class="muted small">· ${c.valutazioni.length} valutazion${c.valutazioni.length === 1 ? 'e' : 'i'}${c.valutazioni[0].data ? ` · ultima ${fmtDate(c.valutazioni[0].data)}` : ''}</span></summary>
       <table class="misure" style="margin-top:8px">${c.valutazioni.map((v) => `<tr>
         <td>${v.data ? fmtDate(v.data) : esc(v.nome)}</td>
-        <td style="text-align:right;white-space:nowrap">
-          <button class="small primary" data-arch="apri" data-cliente="${esc(c.nome)}" data-file="${esc(v.nome)}">Apri</button>
-          <button class="small" data-arch="confronta" data-cliente="${esc(c.nome)}" data-file="${esc(v.nome)}" title="Mostra i valori di questa valutazione accanto a quella aperta">Confronta</button>
-          <button class="small" data-arch="rivaluta" data-cliente="${esc(c.nome)}" data-file="${esc(v.nome)}" title="Nuova valutazione dello stesso cliente con questa a confronto">Rivalutazione</button>
-        </td></tr>`).join('')}</table></details>`).join('')
+        <td style="text-align:right;white-space:nowrap">${pulsantiFile(c.nome, v.nome)}</td></tr>`).join('')}</table></details>`).join('')
     : '<p class="muted">L\'archivio è vuoto: quando salvi una valutazione con cognome e nome del cliente, finisce qui.</p>'}`;
 }
 
-async function azioneFile(a, cliente, file) {
+async function azioneFile(a, cliente, file, chiudiDopo = true) {
   try {
     const sub = await dir.getDirectoryHandle(cliente);
     const fh = await sub.getFileHandle(file);
     const testo = await (await fh.getFile()).text();
     const ok = await cb[a](testo, fh);
-    if (ok !== false) chiudi();
+    if (ok !== false && chiudiDopo) chiudi();
   } catch (e) {
     console.error(e);
     cb.toast('Non riesco ad aprire questo file.', 'err');
