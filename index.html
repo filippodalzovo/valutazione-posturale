@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Valutazione posturale</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -16,9 +16,8 @@
   <div id="app">
     <header class="topbar">
       <div class="brand">
-        <img src="icons/icon-192.png" alt="" class="logo">
         <div class="brand-testi">
-          <span class="app-nome">Valutazione posturale</span>
+          <span class="app-nome"><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="logo-club"> Valutazione posturale</span>
           <span id="cliente-titolo" class="cliente-nome">Nuova valutazione</span>
           <span id="cliente-sotto" class="muted small"></span>
         </div>
@@ -35,7 +34,12 @@
             <button data-action="confronta">Confronta con un file…</button>
           </div>
         </details>
-        <button data-action="stampa">Report / PDF</button>
+        <details class="menu" id="menu-report"><summary>Report</summary>
+          <div class="menu-lista">
+            <button data-action="stampa" data-tipo="tecnico">Report tecnico (PDF)<span class="muted small">tutte le misure, test e riferimenti</span></button>
+            <button data-action="stampa" data-tipo="cliente">Report per il cliente (PDF)<span class="muted small">linguaggio semplice, sagoma e progressi</span></button>
+          </div>
+        </details>
         <button data-action="salva" class="primary">Salva</button>
       </nav>
     </header>

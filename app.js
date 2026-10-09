@@ -4,6 +4,7 @@ import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggio
 import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-logic.js';
 import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome } from './archivio.js';
 import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
+import { confrontoPrecedente } from './confronto.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
@@ -276,53 +277,10 @@ async function salvaSoglie() {
 
 // ---------- riepilogo ----------
 
-const VISTE_NOMI = Object.fromEntries(VISTE.map((v) => [v.id, v.label.toLowerCase()]));
-
-// Righe di confronto con la valutazione precedente: { gruppo, nome, prima, ora, unita, verso }
-function confrontoPrecedente() {
-  if (!prev) return [];
-  const righe = [];
-  const verso = (delta, meglio, soglia = 0.5) => (Math.abs(delta) < soglia || !meglio ? 'neutro' : (meglio === 'alto') === (delta > 0) ? 'meglio' : 'peggio');
-  // foto: per le misure posturali più vicino a zero è meglio
-  for (const v of VISTE) {
-    const f = doc.foto[v.id], pf = prev.foto?.[v.id];
-    if (!f?.lm || !pf?.lm) continue;
-    const m = staticMeasures(v.id, f.lm, f, Number(doc.cliente.altezza) || null);
-    const pm = staticMeasures(v.id, pf.lm, pf, Number(prev.cliente?.altezza) || null);
-    const pmap = new Map(pm.items.map((i) => [i.id, i]));
-    for (const it of m.items) {
-      const p = pmap.get(it.id);
-      if (it.value == null || p?.value == null) continue;
-      righe.push({ gruppo: `Foto ${VISTE_NOMI[v.id]}`, nome: it.label, prima: p.value, ora: it.value, unita: it.unit, verso: verso(it.value - p.value, 'basso') });
-    }
-  }
-  // test con valori numerici
-  for (const t of allTests(doc)) {
-    const a = doc.test?.[t.id], b = prev.test?.[t.id];
-    if (!a || !b) continue;
-    const campi = t.tipo === 'num' ? [['valore', '']] : t.tipo === 'bilat_num' ? [['sx', ' sx'], ['dx', ' dx']] : [];
-    for (const [k, lab] of campi) {
-      const ora = num(a[k]), prima = num(b[k]);
-      if (ora == null || prima == null) continue;
-      righe.push({ gruppo: 'Test', nome: `${t.nome}${lab}`, prima, ora, unita: t.unita || '', verso: verso(ora - prima, t.meglio, 0.01) });
-    }
-  }
-  // video dello stesso movimento e vista: ampiezza massima
-  for (const e of doc.video) {
-    const pe = prev.video?.find((x) => x.esercizio === e.esercizio && x.vista === e.vista);
-    for (const [k, x] of Object.entries(e.riepilogo?.estremi || {})) {
-      const px = pe?.riepilogo?.estremi?.[k];
-      if (!x || !px) continue;
-      righe.push({ gruppo: `Video: ${e.nomeMov || e.esercizio}`, nome: etichettaSerie(e, k).replace(/ \(°\)$/, ''), prima: px.max, ora: x.max, unita: '°', verso: 'neutro' });
-    }
-  }
-  return righe;
-}
-
 function renderRiepilogo() {
   const ril = raccogliRilievi(doc, contesto(doc));
   const zone = rilieviPerZona(ril);
-  const conf = confrontoPrecedente();
+  const conf = confrontoPrecedente(doc, prev);
   const fmt = (n, u) => `${round(n, 1)}${u === '°' ? '°' : u ? ` ${u}` : ''}`;
   const freccia = { meglio: '▲', peggio: '▼', neutro: '•' };
   const prevRil = prev ? raccogliRilievi(prev, contesto(prev)).length : null;
@@ -1280,13 +1238,15 @@ const azioni = {
     renderAll();
   },
   'togli-confronto'() { prev = null; renderAll(); },
-  async stampa() {
+  async stampa(el) {
+    const tipo = el?.dataset?.tipo || 'tecnico';
     const rep = $('#report');
-    toast('Preparo il report…');
-    rep.innerHTML = await buildReport(doc, prev);
+    toast(tipo === 'cliente' ? 'Preparo il report per il cliente…' : 'Preparo il report tecnico…');
+    rep.innerHTML = await buildReport(doc, prev, tipo);
+    rep.dataset.tipo = tipo;
     await Promise.all([...rep.querySelectorAll('img')].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
     const t = document.title;
-    document.title = nomeFile().replace(/\.json$/, '');
+    document.title = nomeFile().replace(/\.json$/, '') + (tipo === 'cliente' ? ' - per il cliente' : '');
     window.print();
     document.title = t;
   },
@@ -1387,7 +1347,7 @@ function mostraHome() {
   home.hidden = false;
   const inCorso = nomeCliente(doc) || dirty;
   home.innerHTML = `<div class="home-top">
-      <div><h2>Valutazioni posturali</h2>
+      <div><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="home-logo"><h2>Valutazioni posturali</h2>
         <p class="muted">Inizia una nuova valutazione o riprendi quella di un cliente dall'archivio.</p></div>
       <div class="toolbar">
         <button class="primary grande" data-action="nuova">+ Nuova valutazione</button>

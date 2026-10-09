@@ -1,7 +1,11 @@
 # Valutazione posturale
 
-App locale per valutazioni posturali: checklist, test funzionali, foto con
-misure automatiche, analisi del movimento da video, report in PDF.
+App per le valutazioni posturali del Gymnasium: checklist, test funzionali,
+foto con misure automatiche, analisi del movimento da video, riepilogo con
+sagoma del corpo e report in PDF (tecnico e per il cliente).
+
+Il logo Gymnasium (`assets/logo-gymnasium.png`) è del club ed è usato con il
+suo consenso: non riutilizzarlo fuori da questa app.
 
 ## Versione online (consigliata)
 
