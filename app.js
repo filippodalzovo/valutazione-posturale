@@ -3,7 +3,8 @@ import { MOVIMENTI, GRUPPI_MOV, VISTE_VIDEO, PUNTI_LIBERI, movimento, movimentoP
 import { initTestUI, renderTestTab, onTestFieldChange, refreshTestResults, aggiornaVideoTest } from './tests-ui.js';
 import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-logic.js';
 import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome, SalvataggioAnnullato, trainerNoti } from './archivio.js';
-import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
+import { raccogliRilievi, rilieviPerZona, COLORI_SEV, NOMI_SEV } from './bodymap.js';
+import { sagomaSvg, caricaAnatomia, anatomiaPronta, CREDITI, NOME_VISTA } from './anatomia.js';
 import { confrontoPrecedente } from './confronto.js';
 import { guidaHtml } from './guida.js';
 import { consensoHtml } from './consenso.js';
@@ -363,10 +364,11 @@ function renderRiepilogo() {
     <div class="riep-grid">
       <div class="card">
         <div class="sagome">
-          <figure>${sagomaSvg(ril, 'anteriore')}<figcaption>Davanti</figcaption></figure>
-          <figure>${sagomaSvg(ril, 'posteriore')}<figcaption>Dietro</figcaption></figure>
+          ${['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(ril, v)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('')}
         </div>
-        <div class="legend" style="justify-content:center;margin-top:8px">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${NOMI_SEV[s]}</span>`).join('')}</div>
+        <div class="legend" style="justify-content:center;margin-top:8px">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${NOMI_SEV[s]}</span>`).join('')}
+          <span class="muted">- - - muscolo profondo</span></div>
+        <p class="crediti">${esc(CREDITI)}</p>
       </div>
       <div class="card">
         <h3>Rilievi <span class="muted small">(${ril.length}${prevRil != null ? ` · prima ${prevRil}` : ''})</span></h3>
@@ -1503,6 +1505,8 @@ function mostraTab(id) {
 
 buildFotoTab();
 buildVideoTab();
+caricaAnatomia().then(() => { if (!$('#tab-riepilogo').hidden) renderRiepilogo(); })
+  .catch((e) => console.warn('Sagome anatomiche non caricate', e));
 initTestUI({ getDoc: () => doc, getPrev: () => prev, markDirty, toast, apriVideoPerTest, vaiAlVideo });
 renderAll();
 mostraHome();

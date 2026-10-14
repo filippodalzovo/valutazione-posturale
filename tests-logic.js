@@ -128,6 +128,18 @@ export function valuta(t, v, ctx) {
     }
   }
 
+  // esito per lato: la prima opzione è quella normale; «Positivo…» vale come test positivo
+  if (t.tipo === 'bilat_esito' && t.opz?.length) {
+    for (const s of ['sx', 'dx']) {
+      const e = v[s];
+      const i = t.opz.indexOf(e);
+      if (!has(e) || i <= 0) continue;
+      const positivo = /^positivo/i.test(e);
+      const liv = positivo || i >= 2 || t.opz.length === 2 ? 'basso' : 'att';
+      out.push({ txt: `${s}: ${e}`, liv, lato: s, soloUI: true, ...(positivo ? { positivo: true } : {}) });
+    }
+  }
+
   if (t.tipo === 'check' && t.soglia) {
     const n = t.opz.filter((_, i) => v[`c_${i}`]).length;
     out.push({ txt: `${n} positivi su ${t.opz.length}`, liv: n >= t.soglia ? 'basso' : 'ok' });

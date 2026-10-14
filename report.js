@@ -6,7 +6,8 @@ import { testReportHtml, contesto } from './tests-logic.js';
 import { staticMeasures, fmtMeasure, round } from './pose.js';
 import { renderFotoDataUrl } from './photo.js';
 import { chartDataUrl } from './video.js';
-import { raccogliRilievi, rilieviPerZona, sagomaSvg, COLORI_SEV, NOMI_SEV } from './bodymap.js';
+import { raccogliRilievi, rilieviPerZona, COLORI_SEV, NOMI_SEV } from './bodymap.js';
+import { sagomaSvg, caricaAnatomia, CREDITI, NOME_VISTA } from './anatomia.js';
 import { confrontoPrecedente } from './confronto.js';
 import { esc, fmtDate, eta, riepilogoRows, etichettaSerie } from './util.js';
 
@@ -23,15 +24,15 @@ function testata(titolo, sottotitolo) {
 }
 
 function sagome(ril) {
-  return `<div class="r-sagome">
-    <figure>${sagomaSvg(ril, 'anteriore')}<figcaption>Davanti</figcaption></figure>
-    <figure>${sagomaSvg(ril, 'posteriore')}<figcaption>Dietro</figcaption></figure>
-  </div>`;
+  return `<div><div class="r-sagome">
+    ${['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(ril, v)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('')}
+  </div><p class="r-crediti">${esc(CREDITI)}</p></div>`;
 }
 
 const legenda = (nomi) => `<div class="r-legenda">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${nomi[s]}</span>`).join('')}</div>`;
 
 export async function buildReport(doc, prev, tipo = 'tecnico') {
+  try { await caricaAnatomia(); } catch { /* senza disegni il report esce comunque, con il messaggio al posto delle sagome */ }
   return tipo === 'cliente' ? reportCliente(doc, prev) : reportTecnico(doc, prev);
 }
 
