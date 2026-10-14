@@ -209,14 +209,31 @@ table.data th { color: var(--muted); font-weight: 500; }
 .sugg-tag { font-size: 12px; background: #e0f2fe; color: #075985; border-radius: 6px; padding: 2px 8px; }
 .sugg-tag.norma { background: #f1f5f9; color: #475569; }
 
-/* pagina iniziale */
-.home-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 6px 0 18px; }
+/* pagina iniziale (e guida): la barra in alto mostra solo il nome dell'app */
+body.in-home .solo-valutazione { display: none !important; }
+body.in-home .app-nome { font-size: 18px; font-weight: 650; text-transform: none; letter-spacing: 0; color: var(--ink); }
+body.in-home .logo-club { height: 16px; vertical-align: -2px; margin-right: 8px; }
+.home-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 16px; }
 .home-top h2 { margin: 0 0 4px; font-size: 24px; }
 .home-top p { margin: 0; }
+.cerca-grande { flex: 1 1 320px; max-width: 560px; font-size: 17px; padding: 11px 14px; }
 button.grande { padding: 11px 18px; font-size: 16px; font-weight: 600; }
-.recenti { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-.recente { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #fcfcfd; }
+.riv-box { margin-bottom: 14px; }
+.riv-box > summary { cursor: pointer; }
+.riv-scadute { color: #b91c1c; font-weight: 600; }
 .cliente-card > summary { cursor: pointer; }
+.cliente-riga { border-top: 1px solid var(--line); padding: 6px 0; }
+.cliente-riga-testa { display: flex; align-items: center; gap: 8px; }
+.link-cliente { flex: 1; min-width: 0; border: 0; background: none; text-align: left; padding: 6px 8px; margin-left: -8px;
+  display: flex; flex-direction: column; gap: 1px; border-radius: 8px; }
+.link-cliente:hover { background: #f1f5f9; }
+.link-cliente:hover strong { color: var(--brand); }
+button.ghost { border-color: transparent; background: none; color: var(--muted); }
+.precedenti { margin: 2px 0 6px 12px; padding-left: 12px; border-left: 2px solid var(--line); }
+.precedente { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+button.link { border: 0; background: none; padding: 0; color: var(--muted); text-decoration: underline; font-size: inherit; }
+button.link:hover { color: var(--ink); background: none; }
+.home-piede { margin: 14px 2px 0; }
 
 .guida { max-width: 860px; line-height: 1.55; }
 .guida h2 { font-size: 17px; margin: 22px 0 6px; }

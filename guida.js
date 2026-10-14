@@ -50,8 +50,10 @@ export function guidaHtml() {
     <li><strong>Report</strong>: «Report tecnico» per te e i colleghi, «Report per il cliente» da consegnare.
       Nella finestra di stampa scegli «Salva come PDF».</li>
   </ol>
-  <p><strong>Rivalutazioni in scadenza</strong>: nella pagina iniziale trovi quelle scadute e dei prossimi 30 giorni
-  (dalla data «Rivalutazione prevista» nelle Conclusioni), filtrabili per trainer e operatore.</p>
+  <p><strong>Pagina iniziale</strong>: cerca il cliente in alto e clicca il suo nome per aprire l'ultima valutazione;
+  «Precedenti» mostra quelle più vecchie. L'elenco parte dai clienti valutati più di recente («A–Z» per l'ordine alfabetico).</p>
+  <p><strong>Rivalutazioni in scadenza</strong>: il riquadro «Rivalutazioni» in cima conta quelle scadute e dei prossimi
+  30 giorni (dalla data «Rivalutazione prevista» nelle Conclusioni); cliccalo per vederle, filtrate per trainer e operatore.</p>
   <p><strong>Consenso informato</strong>: in Anagrafica, «Stampa il modulo di consenso» prepara il modulo da far firmare.</p>
   <p><strong>Rivalutazione</strong>: dalla pagina iniziale, sul cliente, clicca «Rivalutazione». Si apre una nuova
   valutazione con la precedente a confronto (valori in blu, frecce verdi e rosse nel Riepilogo).</p>

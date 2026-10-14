@@ -1452,13 +1452,14 @@ let ultimaTab = 'anagrafica';
 // Guida per i colleghi: pagina a sé, come la pagina iniziale
 function mostraGuida() {
   inHome = true;
+  document.body.classList.add('in-home');
   $('.tabs').hidden = true;
   $$('main > .tab').forEach((s) => (s.hidden = true));
   $('#prev-bar').hidden = true;
   $('#home').hidden = true;
   const g = $('#guida');
   g.hidden = false;
-  g.innerHTML = `<div class="home-top"><div><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="home-logo"><h2>Guida</h2>
+  g.innerHTML = `<div class="home-top"><div><h2>Guida</h2>
       <p class="muted">Installazione, primo avvio e uso dell'app: da leggere o da mandare ai colleghi.</p></div>
       <div class="toolbar"><button class="primary" data-action="guida-pdf">Salva come PDF</button><button data-action="home">Torna ai clienti</button></div></div>
     <div class="card guida">${guidaHtml()}</div>`;
@@ -1467,6 +1468,7 @@ function mostraGuida() {
 
 function mostraHome() {
   inHome = true;
+  document.body.classList.add('in-home');
   $('#guida').hidden = true;
   $('.tabs').hidden = true;
   $$('main > .tab').forEach((s) => (s.hidden = true));
@@ -1474,21 +1476,16 @@ function mostraHome() {
   const home = $('#home');
   home.hidden = false;
   const inCorso = nomeCliente(doc) || dirty;
-  home.innerHTML = `<div class="home-top">
-      <div><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="home-logo"><h2>Valutazioni posturali</h2>
-        <p class="muted">Inizia una nuova valutazione o riprendi quella di un cliente dall'archivio.</p></div>
-      <div class="toolbar">
-        <button class="primary grande" data-action="nuova">+ Nuova valutazione</button>
-        <button data-action="apri">Apri un file…</button>
-        ${inCorso ? `<button data-action="torna">Torna a ${esc(nomeCliente(doc) || 'valutazione in corso')}</button>` : ''}
-      </div></div>
-    <div class="card" id="home-archivio"></div>`;
-  renderHome($('#home-archivio'));
+  const azioni = `${inCorso ? `<button data-action="torna">Torna a ${esc(nomeCliente(doc) || 'valutazione in corso')}${dirty ? ' <span class="badge">non salvata</span>' : ''}</button>` : ''}
+    <button class="primary grande" data-action="nuova">+ Nuova valutazione</button>`;
+  home.innerHTML = '<div id="home-archivio"></div>';
+  renderHome($('#home-archivio'), azioni);
   window.scrollTo(0, 0);
 }
 
 function mostraTab(id) {
   inHome = false;
+  document.body.classList.remove('in-home');
   ultimaTab = id;
   $('#home').hidden = true;
   $('#guida').hidden = true;
@@ -1605,6 +1602,9 @@ initArchivio({
     if (!d) return false;
     nuovaRivalutazione(d);
   },
+}).then(() => {
+  // la pagina iniziale è già disegnata prima che la cartella dell'archivio sia stata riletta
+  if (!$('#home').hidden) mostraHome();
 });
 
 // App installabile: una copia dei file resta sul Mac e l'app parte anche a server spento

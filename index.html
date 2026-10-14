@@ -18,16 +18,16 @@
       <div class="brand">
         <div class="brand-testi">
           <span class="app-nome"><img src="assets/logo-gymnasium.png" alt="Gymnasium" class="logo-club"> Valutazione Posturale</span>
-          <span id="cliente-titolo" class="cliente-nome">Nuova valutazione</span>
-          <span id="cliente-sotto" class="muted small"></span>
+          <span id="cliente-titolo" class="cliente-nome solo-valutazione">Nuova valutazione</span>
+          <span id="cliente-sotto" class="muted small solo-valutazione"></span>
         </div>
-        <span id="stato-salvataggio" class="badge" hidden>Modifiche non salvate</span>
+        <span id="stato-salvataggio" class="badge solo-valutazione" hidden>Modifiche non salvate</span>
       </div>
       <nav class="actions">
         <button data-action="operatore" id="btn-operatore" class="operatore-btn">👤 Operatore</button>
-        <button data-action="home">Clienti</button>
+        <button data-action="home" class="solo-valutazione">Clienti</button>
         <button data-action="guida" title="Come si installa e si usa l'app">Guida</button>
-        <details class="menu" id="menu-file"><summary>File</summary>
+        <details class="menu solo-valutazione" id="menu-file"><summary>File</summary>
           <div class="menu-lista">
             <button data-action="nuova">Nuova valutazione</button>
             <button data-action="apri">Apri un file…</button>
@@ -36,13 +36,13 @@
             <button data-action="confronta">Confronta con un file…</button>
           </div>
         </details>
-        <details class="menu" id="menu-report"><summary>Report</summary>
+        <details class="menu solo-valutazione" id="menu-report"><summary>Report</summary>
           <div class="menu-lista">
             <button data-action="stampa" data-tipo="tecnico">Report tecnico (PDF)<span class="muted small">tutte le misure, test e riferimenti</span></button>
             <button data-action="stampa" data-tipo="cliente">Report per il cliente (PDF)<span class="muted small">linguaggio semplice, sagoma e progressi</span></button>
           </div>
         </details>
-        <button data-action="salva" class="primary">Salva</button>
+        <button data-action="salva" class="primary solo-valutazione">Salva</button>
       </nav>
     </header>
     <div id="prev-bar" class="prev-bar" hidden></div>
