@@ -8,6 +8,7 @@ import { renderFotoDataUrl } from './photo.js';
 import { chartDataUrl } from './video.js';
 import { raccogliRilievi, rilieviPerZona, COLORI_SEV, NOMI_SEV } from './bodymap.js';
 import { sagomaSvg, caricaAnatomia, CREDITI, NOME_VISTA } from './anatomia.js';
+import { CATEGORIE_ES } from './esercizi.js';
 import { confrontoPrecedente } from './confronto.js';
 import { esc, fmtDate, eta, riepilogoRows, etichettaSerie } from './util.js';
 
@@ -151,11 +152,15 @@ async function reportTecnico(doc, prev) {
   if (testHtml) h.push(testHtml);
 
   const k = doc.conclusioni;
-  if (k.sintesi || k.obiettivi || k.indicazioni || k.rivalutazione) {
+  if (k.sintesi || k.obiettivi || k.indicazioni || k.rivalutazione || k.esercizi?.length) {
     h.push(`<h2>Conclusioni</h2>`);
     if (k.sintesi) h.push(`<h3>Sintesi</h3><p class="pre">${esc(k.sintesi)}</p>`);
     if (k.obiettivi) h.push(`<h3>Obiettivi</h3><p class="pre">${esc(k.obiettivi)}</p>`);
     if (k.indicazioni) h.push(`<h3>Indicazioni per il programma</h3><p class="pre">${esc(k.indicazioni)}</p>`);
+    if (k.esercizi?.length) {
+      h.push(`<h3>Esercizi</h3><table><tr><th>Esercizio</th><th>Tipo</th><th>Dosaggio</th><th>Note</th></tr>
+        ${k.esercizi.map((e) => `<tr><td>${esc(e.nome)}</td><td>${esc(CATEGORIE_ES[e.cat] || '')}</td><td>${esc(e.dosaggio || '')}</td><td>${esc(e.note || '')}</td></tr>`).join('')}</table>`);
+    }
     if (k.rivalutazione) h.push(`<p><strong>Rivalutazione prevista:</strong> ${fmtDate(k.rivalutazione)}</p>`);
   }
 
@@ -229,6 +234,10 @@ async function reportCliente(doc, prev) {
   const k = doc.conclusioni;
   if (k.obiettivi) h.push(`<h2>I tuoi obiettivi</h2><p class="pre">${esc(k.obiettivi)}</p>`);
   if (k.indicazioni) h.push(`<h2>Cosa faremo</h2><p class="pre">${esc(k.indicazioni)}</p>`);
+  if (k.esercizi?.length) {
+    h.push(`<h2>I tuoi esercizi</h2><ol class="r-esercizi">${k.esercizi.map((e) => `<li><strong>${esc(e.nome)}</strong>${e.dosaggio ? ` — ${esc(e.dosaggio)}` : ''}
+      ${e.descr ? `<div>${esc(e.descr)}</div>` : ''}${e.note ? `<div class="meta">${esc(e.note)}</div>` : ''}</li>`).join('')}</ol>`);
+  }
   if (k.rivalutazione) h.push(`<div class="r-prossimo">Prossimo controllo: <strong>${fmtDate(k.rivalutazione)}</strong></div>`);
 
   h.push(`<p class="nota">Questo documento riassume una valutazione posturale e funzionale: non è una diagnosi medica.

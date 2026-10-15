@@ -5,6 +5,8 @@ import { testRiepilogoLines, allTests, compilato, contesto, num } from './tests-
 import { initArchivio, stato as statoArchivio, assicuraAccesso, salvaInArchivio, apriPannello, renderHome, SalvataggioAnnullato, trainerNoti } from './archivio.js';
 import { raccogliRilievi, rilieviPerZona, COLORI_SEV, NOMI_SEV } from './bodymap.js';
 import { sagomaSvg, caricaAnatomia, anatomiaPronta, CREDITI, NOME_VISTA } from './anatomia.js';
+import { LIBRERIA, CATEGORIE_ES, suggerisci, eserciziPersonali, salvaEsercizioPersonale, eliminaEsercizioPersonale, esercizioDaLibreria } from './esercizi.js';
+import { testoConclusioni } from './testi.js';
 import { confrontoPrecedente } from './confronto.js';
 import { guidaHtml } from './guida.js';
 import { consensoHtml } from './consenso.js';
@@ -41,7 +43,7 @@ function newDoc() {
     testPersonalizzati: [],
     foto: {},
     video: [],
-    conclusioni: { sintesi: '', obiettivi: '', indicazioni: '', rivalutazione: '' },
+    conclusioni: { sintesi: '', obiettivi: '', indicazioni: '', rivalutazione: '', esercizi: [] },
   };
 }
 
@@ -415,19 +417,86 @@ async function riempiPrimaDopo() {
 
 // ---------- conclusioni ----------
 
+// Esercizi personali dell'operatore (su questo computer): caricati all'avvio
+let personali = [];
+eserciziPersonali().then((l) => { personali = l; }).catch(() => {});
+const categoriaTest = (id) => allTests(doc).find((t) => t.id === id)?.c;
+
 function renderConclusioni() {
+  const ril = raccogliRilievi(doc, contesto(doc));
+  const { esercizi: sugg, ortopedici } = suggerisci(ril, categoriaTest);
+  const prog = doc.conclusioni.esercizi ||= [];
+  const presi = new Set(prog.map((e) => e.id));
+  const badge = (c) => `<span class="es-cat">${esc(CATEGORIE_ES[c] || c)}</span>`;
+  const opzioni = (lista) => Object.keys(CATEGORIE_ES).map((c) => {
+    const voci = lista.filter((e) => e.cat === c);
+    return voci.length ? `<optgroup label="${esc(CATEGORIE_ES[c])}">${voci.map((e) => `<option value="${esc(e.id)}">${esc(e.nome)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
   $('#tab-conclusioni').innerHTML = `
     <h2>Conclusioni</h2>
     <div class="card">
-      <div class="toolbar"><button data-action="riepilogo-auto">Inserisci riepilogo dei rilievi</button>
-      <span class="muted small">Aggiunge in fondo alla sintesi l'elenco di checklist, misure e test: poi rivedilo a parole tue.</span></div>
+      <div class="toolbar"><button class="primary" data-action="proponi-testo">Proponi sintesi e obiettivi dai rilievi</button>
+        <button data-action="riepilogo-auto">Inserisci elenco dettagliato dei rilievi</button></div>
+      <p class="muted small" style="margin-top:4px">Il testo proposto è tecnico e va riletto: modificalo liberamente.</p>
       <div class="grid">
         ${field('conclusioni.sintesi', 'Sintesi della valutazione', 'textarea', 'wide')}
         ${field('conclusioni.obiettivi', 'Obiettivi', 'textarea', 'wide')}
         ${field('conclusioni.indicazioni', 'Indicazioni per il programma di allenamento', 'textarea', 'wide')}
         ${field('conclusioni.rivalutazione', 'Rivalutazione prevista', 'date')}
       </div>
+    </div>
+    <div class="card">
+      <h3>Esercizi</h3>
+      ${ortopedici.length ? `<div class="note-box" style="margin-bottom:10px"><strong>Test ortopedici positivi</strong>: ${ortopedici.map(esc).join('; ')}.
+        Nessun esercizio proposto per questi: da chiarire prima (eventuale invio al medico o al fisioterapista).</div>` : ''}
+      <h4 class="es-tit">Suggeriti dai rilievi</h4>
+      ${sugg.length ? `<div class="es-lista">${sugg.map((e) => `<div class="es-riga">
+          <div><strong>${esc(e.nome)}</strong> ${badge(e.cat)}<div class="muted small">per: ${esc(e.motivi.join(', '))}</div></div>
+          ${presi.has(e.id) ? '<span class="muted small">✓ nel programma</span>' : `<button class="small" data-action="es-aggiungi" data-id="${esc(e.id)}">Aggiungi</button>`}</div>`).join('')}</div>`
+        : '<p class="muted small">Nessun suggerimento: compaiono quando spunti voci dell\'osservazione o un test risulta alterato.</p>'}
+      <h4 class="es-tit">Programma del cliente</h4>
+      ${prog.length ? `<div class="es-lista">${prog.map((e, i) => `<div class="es-riga prog">
+          <div><strong>${esc(e.nome)}</strong> ${badge(e.cat)}${e.descr ? `<div class="muted small">${esc(e.descr)}</div>` : ''}</div>
+          <input type="text" data-path="conclusioni.esercizi.${i}.dosaggio" value="${esc(e.dosaggio || '')}" placeholder="Serie × ripetizioni" aria-label="Dosaggio">
+          <input type="text" data-path="conclusioni.esercizi.${i}.note" value="${esc(e.note || '')}" placeholder="Note" aria-label="Note">
+          <button class="small danger" data-action="es-rimuovi" data-i="${i}" title="Togli dal programma">✕</button></div>`).join('')}</div>`
+        : '<p class="muted small">Nessun esercizio: aggiungi i suggeriti o scegli dalla libreria.</p>'}
+      <div class="toolbar" style="margin-top:10px">
+        <select id="es-libreria"><option value="">Aggiungi dalla libreria…</option>${opzioni(LIBRERIA)}
+          ${personali.length ? `<optgroup label="I tuoi esercizi">${personali.map((e) => `<option value="${esc(e.id)}">${esc(e.nome)}</option>`).join('')}</optgroup>` : ''}</select>
+        <button data-action="es-libreria">Aggiungi</button></div>
+      <details class="es-personali"><summary>I tuoi esercizi personali (solo su questo computer)</summary>
+        <div class="grid" style="margin-top:8px">
+          <label class="field"><span>Nome</span><input type="text" id="esp-nome"></label>
+          <label class="field"><span>Categoria</span><select id="esp-cat">${Object.entries(CATEGORIE_ES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></label>
+          <label class="field"><span>Dosaggio</span><input type="text" id="esp-dos" placeholder="3 × 10"></label>
+          <label class="field wide"><span>Descrizione</span><input type="text" id="esp-descr"></label>
+        </div>
+        <div class="toolbar" style="margin-top:8px"><button data-action="es-pers-salva">Salva esercizio</button></div>
+        ${personali.length ? `<ul class="es-pers-lista">${personali.map((e) => `<li>${esc(e.nome)} ${badge(e.cat)} <button class="small danger" data-action="es-pers-elimina" data-id="${esc(e.id)}">Elimina</button></li>`).join('')}</ul>` : ''}
+      </details>
     </div>`;
+}
+
+function aggiungiEsercizio(id) {
+  const e = esercizioDaLibreria(id) || personali.find((x) => x.id === id);
+  if (!e) return;
+  // copia nel documento: se la libreria cambia, il programma salvato resta com'era
+  doc.conclusioni.esercizi.push({ id: e.id, nome: e.nome, cat: e.cat, dosaggio: e.dosaggio || '', descr: e.descr || '', note: '' });
+  markDirty();
+  renderConclusioni();
+}
+
+function proponiTesto() {
+  const ril = raccogliRilievi(doc, contesto(doc));
+  const t = testoConclusioni(doc, ril, categoriaTest);
+  const k = doc.conclusioni;
+  if ((k.sintesi?.trim() || k.obiettivi?.trim()) && !confirm('Sintesi e obiettivi contengono già del testo.\n\nOK: sostituiscili con il testo proposto.\nAnnulla: lascia com\'è.')) return;
+  k.sintesi = t.sintesi;
+  k.obiettivi = t.obiettivi;
+  markDirty();
+  renderConclusioni();
+  toast('Testo proposto inserito: rileggilo e modificalo.');
 }
 
 function riepilogoAutomatico() {
@@ -1391,6 +1460,23 @@ const azioni = {
     document.title = t;
   },
   'riepilogo-auto': riepilogoAutomatico,
+  'proponi-testo': proponiTesto,
+  'es-aggiungi'(el) { aggiungiEsercizio(el.dataset.id); },
+  'es-libreria'() { const v = $('#es-libreria').value; if (!v) { toast('Scegli un esercizio dall\'elenco.'); return; } aggiungiEsercizio(v); },
+  'es-rimuovi'(el) { doc.conclusioni.esercizi.splice(Number(el.dataset.i), 1); markDirty(); renderConclusioni(); },
+  async 'es-pers-salva'() {
+    const nome = $('#esp-nome').value.trim();
+    if (!nome) { toast('Scrivi il nome dell\'esercizio.', 'err'); return; }
+    personali = await salvaEsercizioPersonale({ nome, cat: $('#esp-cat').value, dosaggio: $('#esp-dos').value.trim(), descr: $('#esp-descr').value.trim() });
+    renderConclusioni();
+    toast(`«${nome}» salvato tra i tuoi esercizi.`);
+  },
+  async 'es-pers-elimina'(el) {
+    const e = personali.find((x) => x.id === el.dataset.id);
+    if (!e || !confirm(`Eliminare «${e.nome}» dai tuoi esercizi? Le valutazioni che lo contengono già non cambiano.`)) return;
+    personali = await eliminaEsercizioPersonale(e.id);
+    renderConclusioni();
+  },
   'sagome-di'(el) { sagomeDi = el.dataset.quale; renderRiepilogo(); },
   'sugg-applica'(el) { applicaSuggerimento(el.dataset.id); markDirty(); renderStatica(); },
   'sugg-tutti'() {
@@ -1524,6 +1610,7 @@ function mostraTab(id) {
   $$('.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
   $$('main > .tab').forEach((s) => (s.hidden = s.id !== `tab-${id}`));
   if (id === 'riepilogo') renderRiepilogo();
+  if (id === 'conclusioni') renderConclusioni(); // i suggerimenti seguono i rilievi del momento
   if (id === 'foto') editor.layout();
   if (id === 'video') renderVideoList();
   if (id === 'statica') renderStatica(); // le foto possono essere cambiate nel frattempo
