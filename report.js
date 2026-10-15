@@ -23,10 +23,13 @@ function testata(titolo, sottotitolo) {
   </header>`;
 }
 
+// Nei PDF le figure sono piccole: numeri sulle strutture e legenda sotto
 function sagome(ril) {
-  return `<div><div class="r-sagome">
-    ${['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(ril, v)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('')}
-  </div><p class="r-crediti">${esc(CREDITI)}</p></div>`;
+  const num = { n: 0, voci: [] };
+  const figure = ['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(ril, v, num)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('');
+  return `<div><div class="r-sagome">${figure}</div>
+    ${num.voci.length ? `<ol class="r-numeri">${num.voci.map((x) => `<li><b style="background:${COLORI_SEV[x.sev]};color:${x.sev === 3 ? '#fff' : '#111827'}">${x.n}</b>${esc(x.testo)}</li>`).join('')}</ol>` : ''}
+    <p class="r-crediti">${esc(CREDITI)}</p></div>`;
 }
 
 const legenda = (nomi) => `<div class="r-legenda">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${nomi[s]}</span>`).join('')}</div>`;

@@ -4,7 +4,7 @@
 //
 // Quando cambiano i file dell'app, aumentare VERSIONE: al primo avvio con il
 // server acceso la nuova versione viene scaricata e usata dall'avvio successivo.
-const VERSIONE = 'vp-2026-10-15-1';
+const VERSIONE = 'vp-2026-10-15-2';
 
 const APP = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',

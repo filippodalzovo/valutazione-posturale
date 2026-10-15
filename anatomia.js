@@ -187,7 +187,9 @@ function ctm(el) {
 
 const NS = 'http://www.w3.org/2000/svg';
 
-export function sagomaSvg(rilievi, vista) {
+// numerazione = { n, voci }: al posto delle etichette ai lati, numeri sulla figura e legenda a parte
+// (nei report, dove le figure sono piccole). Lo stesso oggetto passa per le tre viste.
+export function sagomaSvg(rilievi, vista, numerazione = null) {
   if (!testi) return '<p class="muted small">Caricamento della sagoma…</p>';
   const V = VISTE[vista];
   const doc = new DOMParser().parseFromString(vista === 'laterale' ? testi.laterale : testi.muscoli, 'image/svg+xml');
@@ -285,7 +287,24 @@ export function sagomaSvg(rilievi, vista) {
         ancora = [V.mid, (y0 + y1) / 2];
       }
     }
-    if (ancora) ancore.push({ x: ancora[0], y: ancora[1], testo: s[vista].bil ? s.n : nomeLato(s, g.lato), sev: g.sev });
+    if (ancora) ancore.push({ x: ancora[0], y: ancora[1], testo: s[vista].bil ? s.n : nomeLato(s, g.lato), sev: g.sev, testi: g.testi });
+  }
+
+  if (numerazione) {
+    const messi = [];
+    for (const a of ancore.sort((p, q) => p.y - q.y || p.x - q.x)) {
+      // due strutture vicine: il secondo numero si sposta di lato per non coprire il primo
+      while (messi.some((m) => Math.hypot(m[0] - a.x, m[1] - a.y) < 12)) a.x += a.x >= V.mid ? 12 : -12;
+      messi.push([a.x, a.y]);
+      const n = ++numerazione.n;
+      numerazione.voci.push({ n, testo: a.testo, sev: a.sev, testi: a.testi });
+      el('circle', { cx: a.x, cy: a.y, r: 6.2, fill: COLORI[a.sev], stroke: '#fff', 'stroke-width': '1.2' }, etichette);
+      const t = el('text', { x: a.x, y: a.y + 2.6, 'text-anchor': 'middle', class: 'an-numero', fill: a.sev === 3 ? '#fff' : '#111827' }, etichette);
+      t.textContent = n;
+    }
+    const [vx, , vw] = V.vb;
+    root.setAttribute('viewBox', [vx + MARGINE - 12, V.vb[1], vw - 2 * MARGINE + 24, V.vb[3]].join(' '));
+    return chiudi(root, vista);
   }
 
   // etichette ai lati, una sotto l'altra senza sovrapporsi
@@ -310,6 +329,10 @@ export function sagomaSvg(rilievi, vista) {
   }
 
   root.setAttribute('viewBox', V.vb.join(' '));
+  return chiudi(root, vista);
+}
+
+function chiudi(root, vista) {
   root.setAttribute('class', 'anatomia');
   root.setAttribute('role', 'img');
   root.setAttribute('aria-label', `Sagoma ${vista}`);

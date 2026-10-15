@@ -32,9 +32,10 @@ export function loadImage(src) {
   return p;
 }
 
-// Ridimensiona a max 1600 px sul lato lungo e comprime in JPEG:
-// le foto finiscono dentro il file .json della valutazione.
-export async function fileToFoto(file, max = 1600) {
+// Le foto finiscono dentro il file .json della valutazione (sincronizzato su OneDrive):
+// 1400 px sul lato lungo bastano per le misure, il motore di analisi lavora a risoluzione più bassa.
+export const QUALITA_JPEG = 0.82;
+export async function fileToFoto(file, max = 1400) {
   const url = URL.createObjectURL(file);
   try {
     const im = await loadImage(url);
@@ -44,7 +45,7 @@ export async function fileToFoto(file, max = 1600) {
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     c.getContext('2d').drawImage(im, 0, 0, w, h);
-    return { dataUrl: c.toDataURL('image/jpeg', 0.88), w, h, linee: [], piombo: null, griglia: false, grigliaN: 12, scheletro: true, lm: null, calib: null };
+    return { dataUrl: c.toDataURL('image/jpeg', QUALITA_JPEG), w, h, linee: [], piombo: null, griglia: false, grigliaN: 12, scheletro: true, lm: null, calib: null };
   } finally {
     imgCache.delete(url);
     URL.revokeObjectURL(url);
@@ -168,7 +169,7 @@ export async function blurFotoArea(foto, e) {
   ctx.drawImage(img, 0, 0, foto.w, foto.h);
   blurEllipse(ctx, c, e, foto.w, foto.h);
   imgCache.delete(foto.dataUrl);
-  foto.dataUrl = c.toDataURL('image/jpeg', 0.88);
+  foto.dataUrl = c.toDataURL('image/jpeg', QUALITA_JPEG);
   foto.sfocato = true;
 }
 
@@ -184,7 +185,7 @@ export async function rotatedDataUrl(src, w, h, rad) {
   ctx.rotate(rad);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, -w / 2, -h / 2, w, h);
-  return c.toDataURL('image/jpeg', 0.9);
+  return c.toDataURL('image/jpeg', 0.86);
 }
 
 // Ruota con la foto punti, linee, calibrazione e filo a piombo
