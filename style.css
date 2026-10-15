@@ -256,6 +256,12 @@ table.riv td.scaduta { color: #b91c1c; font-weight: 600; }
 .sagome figcaption { font-size: 12px; color: var(--muted); }
 svg.anatomia .an-testo { font: 600 8.5px system-ui, -apple-system, sans-serif; fill: #111827; }
 svg.anatomia .an-numero { font: 700 7.5px system-ui, -apple-system, sans-serif; }
+.pd-coppia { margin-bottom: 14px; }
+.pd-coppia h4 { margin: 0 0 6px; font-size: 14px; }
+.pd-foto { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; }
+.pd-foto figure { margin: 0; }
+.pd-foto img { width: 100%; border-radius: 8px; display: block; }
+.pd-foto figcaption { font-size: 12px; color: var(--muted); text-align: center; margin-top: 3px; }
 .crediti { font-size: 11px; color: var(--muted); text-align: center; margin: 6px 0 0; }
 .zona-ril { padding: 8px 0; border-top: 1px solid var(--line); }
 .zona-ril:first-of-type { border-top: 0; }
@@ -363,6 +369,7 @@ details.distretto[open] > summary { margin-bottom: 8px; }
 .report .r-numeri li { display: flex; align-items: center; gap: 1.2mm; }
 .report .r-numeri b { display: inline-grid; place-items: center; min-width: 4.2mm; height: 4.2mm; border-radius: 50%; font-size: 7pt; }
 .report .r-sagome figure { margin: 0; min-width: 0; }
+.report .r-prima-dopo { margin-bottom: 3mm; }
 .report .r-crediti { font-size: 7pt; color: #6b7280; text-align: center; margin: 1mm 0 0; }
 .report .r-sagome svg { width: 100%; height: auto; }
 .report .r-zona { padding: 1.5mm 0; border-bottom: 1px solid #f3f4f6; font-size: 10pt; break-inside: avoid; }

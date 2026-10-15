@@ -11,7 +11,7 @@ import { consensoHtml } from './consenso.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi, elimina } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
-import { PhotoEditor, fileToFoto, loadImage, lineText, blurFotoArea } from './photo.js';
+import { PhotoEditor, fileToFoto, loadImage, lineText, blurFotoArea, renderFotoDataUrl } from './photo.js';
 import { faceEllipse, ellipseFromCorners, blurEllipse, visoVisibile } from './privacy.js';
 import { assicuraBase, stimaBolla, impostaBolla, accendiBolla, raddrizzaConLinea, tornaAllaStima, sfocaEllisse, bollaBoxHtml, gradiTxt } from './bolla.js';
 import { analyzeVideo, loadVideo, drawChart, drawSkeleton, nearestFrame, snapshot, COLORI } from './video.js';
@@ -352,9 +352,14 @@ async function salvaSoglie() {
 
 // ---------- riepilogo ----------
 
+// Con una valutazione precedente le sagome possono mostrare «ora» o «prima»
+let sagomeDi = 'ora';
+
 function renderRiepilogo() {
   const ril = raccogliRilievi(doc, contesto(doc));
   const zone = rilieviPerZona(ril);
+  if (!prev) sagomeDi = 'ora';
+  const rilSagome = sagomeDi === 'prima' ? raccogliRilievi(prev, contesto(prev)) : ril;
   const conf = confrontoPrecedente(doc, prev);
   const fmt = (n, u) => `${round(n, 1)}${u === '°' ? '°' : u ? ` ${u}` : ''}`;
   const freccia = { meglio: '▲', peggio: '▼', neutro: '•' };
@@ -363,8 +368,11 @@ function renderRiepilogo() {
     <h2>Riepilogo</h2>
     <div class="riep-grid">
       <div class="card">
+        ${prev ? `<div class="toolbar" style="justify-content:center;margin-bottom:6px">
+          <button class="small${sagomeDi === 'ora' ? ' on' : ''}" data-action="sagome-di" data-quale="ora">Ora</button>
+          <button class="small${sagomeDi === 'prima' ? ' on' : ''}" data-action="sagome-di" data-quale="prima">Prima (${fmtDate(prev.valutazione?.data)})</button></div>` : ''}
         <div class="sagome">
-          ${['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(ril, v)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('')}
+          ${['anteriore', 'posteriore', 'laterale'].map((v) => `<figure>${sagomaSvg(rilSagome, v)}<figcaption>${NOME_VISTA(v)}</figcaption></figure>`).join('')}
         </div>
         <div class="legend" style="justify-content:center;margin-top:8px">${[1, 2, 3].map((s) => `<span><i style="background:${COLORI_SEV[s]}"></i>${NOMI_SEV[s]}</span>`).join('')}
           <span class="muted">- - - muscolo profondo</span></div>
@@ -383,7 +391,26 @@ function renderRiepilogo() {
           <tr><td>${esc(r.nome)}</td><td>${fmt(r.prima, r.unita)}</td><td>${fmt(r.ora, r.unita)}</td>
           <td class="var-${r.verso}">${freccia[r.verso]} ${r.ora - r.prima > 0 ? '+' : ''}${fmt(r.ora - r.prima, r.unita)}</td></tr>`).join('')}</table></div>
         <p class="muted small">▲ verde = migliorato · ▼ rosso = peggiorato · • = variazione minima o senza un verso «migliore» definito.</p>`
-      : '<p class="muted">Nessuna misura presente in entrambe le valutazioni.</p>'}</div>` : ''}`;
+      : '<p class="muted">Nessuna misura presente in entrambe le valutazioni.</p>'}</div>` : ''}
+    ${prev ? '<div class="card"><h3>Prima e dopo</h3><div id="prima-dopo"><p class="muted small">Preparazione delle foto…</p></div></div>' : ''}`;
+  if (prev) riempiPrimaDopo();
+}
+
+// Foto delle due valutazioni affiancate, vista per vista, con linee e punti
+let turnoPrimaDopo = 0;
+async function riempiPrimaDopo() {
+  const turno = ++turnoPrimaDopo;
+  const coppie = VISTE.filter((v) => doc.foto[v.id]?.dataUrl && prev?.foto?.[v.id]?.dataUrl);
+  const html = [];
+  for (const v of coppie) {
+    const [a, b] = await Promise.all([renderFotoDataUrl(prev.foto[v.id], 700), renderFotoDataUrl(doc.foto[v.id], 700)]);
+    html.push(`<div class="pd-coppia"><h4>Vista ${esc(v.label.toLowerCase())}</h4><div class="pd-foto">
+      <figure><img src="${a}" alt=""><figcaption>Prima · ${fmtDate(prev.valutazione?.data)}</figcaption></figure>
+      <figure><img src="${b}" alt=""><figcaption>Ora · ${fmtDate(doc.valutazione?.data)}</figcaption></figure></div></div>`);
+  }
+  const box = $('#prima-dopo');
+  if (!box || turno !== turnoPrimaDopo) return;
+  box.innerHTML = html.join('') || '<p class="muted">Nessuna vista fotografata in entrambe le valutazioni.</p>';
 }
 
 // ---------- conclusioni ----------
@@ -1364,6 +1391,7 @@ const azioni = {
     document.title = t;
   },
   'riepilogo-auto': riepilogoAutomatico,
+  'sagome-di'(el) { sagomeDi = el.dataset.quale; renderRiepilogo(); },
   'sugg-applica'(el) { applicaSuggerimento(el.dataset.id); markDirty(); renderStatica(); },
   'sugg-tutti'() {
     for (const [id, g] of Object.entries(suggerimenti)) if (g.on && !uguale(doc.statica[id], g)) applicaSuggerimento(id);

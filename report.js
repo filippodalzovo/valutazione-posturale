@@ -114,8 +114,11 @@ async function reportTecnico(doc, prev) {
       const pf = prev?.foto?.[v.id];
       const pm = pf?.lm ? staticMeasures(v.id, pf.lm, pf, Number(prev.cliente?.altezza) || null) : null;
       const pmap = new Map((pm?.items || []).map((i) => [i.id, i]));
+      const imgPrima = pf?.dataUrl ? await renderFotoDataUrl(pf) : null;
       h.push(`<div class="blocco"><h3>Vista ${v.label.toLowerCase()}</h3>
-        <div class="foto-grid"><figure><img src="${img}" alt=""><figcaption>${f.bolla?.attiva ? `Messa in bolla: ${Math.abs(f.bolla.manuale ?? f.bolla.auto)}° (${f.bolla.manuale != null ? 'manuale' : 'automatica'})${f.note ? ' · ' : ''}` : ''}${esc(f.note || '')}</figcaption></figure>
+        ${imgPrima ? `<div class="foto-grid r-prima-dopo"><figure><img src="${imgPrima}" alt=""><figcaption>Prima · ${fmtDate(prev.valutazione?.data)}</figcaption></figure>
+          <figure><img src="${img}" alt=""><figcaption>Ora · ${fmtDate(doc.valutazione?.data)}</figcaption></figure></div>` : ''}
+        <div class="${imgPrima ? 'r-misure' : 'foto-grid'}">${imgPrima ? '' : `<figure><img src="${img}" alt=""><figcaption>${f.bolla?.attiva ? `Messa in bolla: ${Math.abs(f.bolla.manuale ?? f.bolla.auto)}° (${f.bolla.manuale != null ? 'manuale' : 'automatica'})${f.note ? ' · ' : ''}` : ''}${esc(f.note || '')}</figcaption></figure>`}
         <div>${m ? `<table><tr><th>Misura</th><th>Valore</th>${pm ? '<th>Prec.</th>' : ''}</tr>
           ${m.items.map((i) => `<tr><td>${esc(i.label)}${i.warn ? ' *' : ''}</td><td>${esc(fmtMeasure(i))}<br><span class="meta">${esc(i.dir)}</span></td>
             ${pm ? `<td>${pmap.has(i.id) ? `${esc(fmtMeasure(pmap.get(i.id)))}<br><span class="meta">${esc(pmap.get(i.id).dir)}</span>` : '—'}</td>` : ''}</tr>`).join('')}
@@ -196,8 +199,19 @@ async function reportCliente(doc, prev) {
   const foto = [scelte.find((v) => v === 'anteriore' || v === 'posteriore'), scelte.find((v) => v.startsWith('lat'))].filter(Boolean);
   if (foto.length) {
     const imgs = [];
-    for (const v of foto) imgs.push(`<figure><img src="${await renderFotoDataUrl(doc.foto[v], 700)}" alt=""><figcaption>${VISTE.find((x) => x.id === v).label}</figcaption></figure>`);
-    h.push(`<h2>Le tue foto</h2><div class="foto-grid blocco">${imgs.join('')}</div>`);
+    const conPrima = foto.filter((v) => prev?.foto?.[v]?.dataUrl);
+    if (conPrima.length) {
+      // rivalutazione: la stessa vista prima e ora, una accanto all'altra
+      for (const v of conPrima) {
+        imgs.push(`<div class="blocco"><h3>${VISTE.find((x) => x.id === v).label}</h3><div class="foto-grid">
+          <figure><img src="${await renderFotoDataUrl(prev.foto[v], 700)}" alt=""><figcaption>Prima · ${fmtDate(prev.valutazione?.data)}</figcaption></figure>
+          <figure><img src="${await renderFotoDataUrl(doc.foto[v], 700)}" alt=""><figcaption>Ora · ${fmtDate(doc.valutazione?.data)}</figcaption></figure></div></div>`);
+      }
+      h.push(`<h2>Le tue foto: prima e ora</h2>${imgs.join('')}`);
+    } else {
+      for (const v of foto) imgs.push(`<figure><img src="${await renderFotoDataUrl(doc.foto[v], 700)}" alt=""><figcaption>${VISTE.find((x) => x.id === v).label}</figcaption></figure>`);
+      h.push(`<h2>Le tue foto</h2><div class="foto-grid blocco">${imgs.join('')}</div>`);
+    }
   }
 
   // Progressi rispetto alla volta precedente (solo ciò che ha un verso chiaro)
