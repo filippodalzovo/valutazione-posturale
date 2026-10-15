@@ -17,6 +17,7 @@ export function guidaHtml() {
     <li><strong>Chrome</strong>: clicca l'icona di installazione a destra nella barra degli indirizzi (oppure menu ⋮ →
       «Trasmetti, salva e condividi» → «Installa pagina come app…»).</li>
     <li><strong>Edge</strong>: menu ⋯ → «App» → «Installa questo sito come app».</li>
+    <li><strong>iPad</strong>: apri il link con Safari → pulsante Condividi → «Aggiungi alla schermata Home».</li>
   </ul>
   <p>L'app compare nel Launchpad (Mac) o nel menu Start (Windows) e si apre in una finestra sua. Dopo la prima apertura
   <strong>funziona anche senza internet</strong>; con internet si <strong>aggiorna da sola</strong>.</p>
@@ -36,7 +37,8 @@ export function guidaHtml() {
   <h2>3. Una valutazione, passo per passo</h2>
   <ol>
     <li><strong>Anagrafica</strong>: dati del cliente, altezza (serve per i centimetri) e <strong>consenso</strong> a foto e video.</li>
-    <li><strong>Foto</strong>: anteriore, posteriore e laterali. L'app riconosce i punti del corpo, sfoca il viso e calcola
+    <li><strong>Foto</strong>: anteriore, posteriore e laterali, caricate dal dispositivo o scattate con «Scatta con la fotocamera»
+      (webcam del Mac o fotocamera dell'iPad, con timer e linea centrale per allineare il cliente). L'app riconosce i punti del corpo, sfoca il viso e calcola
       inclinazioni e allineamenti. Controlla i punti e trascinali se serve. «In bolla» raddrizza la foto usando lo sfondo.</li>
     <li><strong>Osservazione statica</strong>: spunta ciò che osservi. Per le voci misurabili compare il suggerimento
       dalla foto: conferma con «Applica».</li>
@@ -44,7 +46,9 @@ export function guidaHtml() {
     <li><strong>Test funzionali</strong>: usa un protocollo (es. «Lombalgia», «Anziano») o cerca il test. «i» spiega come
       si esegue; «＋» aggiunge foto, video e note.</li>
     <li><strong>Riepilogo</strong>: sagoma con le zone da attenzionare e confronto con la valutazione precedente.</li>
-    <li><strong>Conclusioni</strong>: sintesi, obiettivi, indicazioni e data della rivalutazione.</li>
+    <li><strong>Conclusioni</strong>: «Proponi sintesi e obiettivi dai rilievi» scrive un testo tecnico da rivedere.
+      Sotto trovi gli <strong>esercizi suggeriti</strong> dai rilievi: aggiungili al programma, regola il dosaggio o scegline
+      altri dalla libreria. Puoi salvare anche esercizi tuoi (restano solo sul tuo computer). Infine la data della rivalutazione.</li>
     <li><strong>Salva</strong>: finisce nella cartella del cliente nell'archivio. Se l'app si chiude prima, alla
       riapertura propone di riprendere la <strong>bozza</strong> rimasta sul computer.</li>
     <li><strong>Report</strong>: «Report tecnico» per te e i colleghi, «Report per il cliente» da consegnare.
@@ -56,7 +60,17 @@ export function guidaHtml() {
   30 giorni (dalla data «Rivalutazione prevista» nelle Conclusioni); cliccalo per vederle, filtrate per trainer e operatore.</p>
   <p><strong>Consenso informato</strong>: in Anagrafica, «Stampa il modulo di consenso» prepara il modulo da far firmare.</p>
   <p><strong>Rivalutazione</strong>: dalla pagina iniziale, sul cliente, clicca «Rivalutazione». Si apre una nuova
-  valutazione con la precedente a confronto (valori in blu, frecce verdi e rosse nel Riepilogo).</p>
+  valutazione con la precedente a confronto: valori in blu, frecce verdi e rosse, foto «prima e dopo» affiancate e
+  sagome «Ora / Prima» nel Riepilogo; anche i report mostrano le foto prima e ora.</p>
+
+  <h2>Su iPad</h2>
+  <ul>
+    <li>Foto, analisi, test e report funzionano come sul Mac.</li>
+    <li>L'elenco dei clienti non c'è: il browser dell'iPad non può leggere una cartella. Apri le valutazioni con
+      «Apri un file…» scegliendole dall'app File (anche dalla cartella OneDrive del centro).</li>
+    <li>«Salva» apre il menu Condividi: scegli <strong>«Salva su File»</strong> e la cartella del cliente su OneDrive.
+      Usa lo stesso nome di cartella «Cognome Nome» che si vede sul Mac, così ritrovi tutto nell'archivio.</li>
+  </ul>
 
   <h2>4. Lavorare in più colleghi</h2>
   <ul>

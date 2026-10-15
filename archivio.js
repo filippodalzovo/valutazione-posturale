@@ -320,7 +320,13 @@ async function renderArchivio(body, { home = false, azioni = '' } = {}) {
     <div class="toolbar">${azioni}</div></div>` : '');
   const messaggio = (html) => { body.innerHTML = home ? `${testa(false)}<div class="card">${html}</div>` : html; };
   if (s === 'non-supportato') {
-    messaggio(`<p>L'archivio richiede <strong>Chrome</strong> o <strong>Edge</strong>. Con questo browser puoi comunque aprire e salvare i file delle valutazioni.</p>
+    // su iPad nessun browser può leggere una cartella: si lavora con i singoli file
+    const ipad = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    messaggio(ipad
+      ? `<p><strong>Su iPad l'elenco dei clienti non è disponibile</strong>: il browser non può leggere una cartella.
+        Apri una valutazione con «Apri un file…» (dall'app File, anche dalla cartella OneDrive del centro) e salvala con «Salva» → «Salva su File»,
+        scegliendo la cartella del cliente.</p>${home ? '<button class="primary" data-action="apri">Apri un file…</button>' : ''}`
+      : `<p>L'archivio richiede <strong>Chrome</strong> o <strong>Edge</strong>. Con questo browser puoi comunque aprire e salvare i file delle valutazioni.</p>
       ${home ? '<button data-action="apri">Apri un file…</button>' : ''}`);
     return;
   }

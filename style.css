@@ -414,3 +414,11 @@ details.distretto[open] > summary { margin-bottom: 8px; }
   #app, .toast { display: none !important; }
   .report { display: block; }
 }
+
+/* fotocamera */
+.camera-box { max-width: 980px; width: calc(100vw - 32px); }
+.camera-vista { position: relative; background: #000; border-radius: 10px; overflow: hidden; }
+.camera-vista video { display: block; width: 100%; max-height: 70vh; object-fit: contain; }
+.camera-guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.camera-guide line { stroke: rgba(255, 255, 255, .55); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.camera-conto { position: absolute; inset: 0; display: grid; place-items: center; font-size: 120px; font-weight: 700; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .6); }

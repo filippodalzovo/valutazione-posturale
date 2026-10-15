@@ -7,6 +7,7 @@ import { raccogliRilievi, rilieviPerZona, COLORI_SEV, NOMI_SEV } from './bodymap
 import { sagomaSvg, caricaAnatomia, anatomiaPronta, CREDITI, NOME_VISTA } from './anatomia.js';
 import { LIBRERIA, CATEGORIE_ES, suggerisci, eserciziPersonali, salvaEsercizioPersonale, eliminaEsercizioPersonale, esercizioDaLibreria } from './esercizi.js';
 import { testoConclusioni } from './testi.js';
+import { scattaFoto } from './fotocamera.js';
 import { confrontoPrecedente } from './confronto.js';
 import { guidaHtml } from './guida.js';
 import { consensoHtml } from './consenso.js';
@@ -572,6 +573,7 @@ function buildFotoTab() {
             <span class="sep"></span>
             <button class="small" data-action="sfoca-viso">Sfoca viso</button>
             <button class="small" data-action="sostituisci-foto">Sostituisci foto</button>
+            <button class="small" data-action="fotocamera">Nuovo scatto</button>
             <button class="small danger" data-action="rimuovi-foto">Rimuovi foto</button>
           </div>
           <div class="legend" style="margin-top:6px">
@@ -650,7 +652,8 @@ async function renderFoto() {
   $('#foto-main').hidden = !f;
   $('#foto-vuota').innerHTML = f ? '' : `
     <div class="dropzone"><p><strong>Vista ${VISTE.find((v) => v.id === vistaAttiva).label.toLowerCase()}</strong>: trascina qui la foto oppure</p>
-    <button class="primary" data-action="carica-foto">Scegli foto…</button></div>`;
+    <div class="toolbar" style="justify-content:center"><button class="primary" data-action="carica-foto">Scegli foto…</button>
+      <button data-action="fotocamera">Scatta con la fotocamera</button></div></div>`;
   if (!f) { await editor.setFoto(null); return; }
   f.griglia ??= false; f.scheletro ??= true; f.linee ??= [];
   await editor.setFoto(f);
@@ -1338,7 +1341,21 @@ async function salva() {
       fileHandle = null;
     }
   }
-  // Safari e altri: download nella cartella Download
+  // iPad (e Safari in genere): menu Condividi → «Salva su File», dove si sceglie la cartella OneDrive del cliente
+  const file = new File([json], nomeFile(), { type: 'application/json' });
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: nomeFile() });
+      markDirty(false);
+      toast('Salvato: controlla che il file sia nella cartella del cliente.');
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') { toast('Salvataggio annullato: la valutazione è ancora aperta qui.'); return; }
+      console.error(e);
+    }
+  }
+  // altrimenti: download nella cartella Download
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
   a.download = nomeFile();
@@ -1495,6 +1512,11 @@ const azioni = {
   'carica-foto'() { $('#foto-input').click(); },
   'sostituisci-foto'() {
     if (confirm('Sostituire la foto? Punti, linee e calibrazione di questa vista verranno rimossi.')) $('#foto-input').click();
+  },
+  async fotocamera() {
+    if (doc.foto[vistaAttiva] && !confirm('Sostituire la foto con un nuovo scatto? Punti, linee e calibrazione di questa vista verranno rimossi.')) return;
+    const f = await scattaFoto(`Vista ${VISTE.find((v) => v.id === vistaAttiva).label.toLowerCase()}`);
+    if (f) caricaFoto(f);
   },
   'rimuovi-foto'() {
     if (!confirm('Rimuovere la foto di questa vista dalla valutazione?')) return;
