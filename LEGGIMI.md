@@ -156,4 +156,13 @@ server.ps1      mini server locale (Windows, PowerShell)
 manifest.webmanifest, sw.js, icons/   installazione come app e uso offline
 index.html, style.css, app.js, …   l'app
 vendor/         MediaPipe tasks-vision 0.10.35 + modelli pose (heavy, full) e mani
+assets/anatomia/  disegni delle sagome (crediti e licenze nel LEGGIMI della cartella)
+test/           controlli automatici
 ```
+
+## Controlli automatici
+
+`node test/controlli.mjs` verifica sintassi, file per l'uso offline, collegamenti tra voci, test,
+strutture ed esercizi, e la logica di test, rilievi e misure, con dati inventati.
+Girano da soli su GitHub a ogni pubblicazione (`.github/workflows/controlli.yml`):
+se qualcosa non va, GitHub manda un'email.
