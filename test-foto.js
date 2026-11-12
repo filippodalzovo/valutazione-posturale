@@ -129,8 +129,8 @@ async function aggiungi(files, { testId, lato: etichetta }) {
     let f;
     try {
       f = await fileToFoto(file, 1200);
-    } catch {
-      app.toast(`Non riesco a leggere «${file.name}».`, 'err');
+    } catch (err) {
+      app.toast(`Non riesco a leggere «${file.name}» (${err.message}).`, 'err');
       continue;
     }
     Object.assign(f, { id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, etichetta, nota: '', scheletro: false, piombo: null });

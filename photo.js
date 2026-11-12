@@ -47,13 +47,23 @@ async function daHeic(file) {
   return heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 });
 }
 
+// Solo dati tecnici del file (mai il contenuto dell'immagine), per capire perché non si apre
+async function descriviFile(file) {
+  const testa = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const marca = String.fromCharCode(...testa.slice(8, 12)).replace(/[^\x20-\x7e]/g, '?');
+  return `tipo «${file.type || 'sconosciuto'}», contenuto «${marca}», ${(file.size / 1048576).toFixed(1)} MB`;
+}
+
 export async function fileToFoto(file, max = 1400) {
   try {
     return await daImmagine(file, max);
   } catch (err) {
-    const jpg = await daHeic(file).catch((e) => { console.error(e); return null; });
-    if (!jpg) throw err;
-    return daImmagine(jpg, max);
+    let motivo = '';
+    const jpg = await daHeic(file).catch((e) => { console.error(e); motivo = `, conversione HEIC: ${e?.message || e}`; return null; });
+    if (jpg) return daImmagine(jpg, max);
+    const e = new Error(`${await descriviFile(file).catch(() => '')}${motivo}`);
+    e.cause = err;
+    throw e;
   }
 }
 

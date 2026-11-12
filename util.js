@@ -80,5 +80,6 @@ export function toast(msg, kind = '') {
   el.textContent = msg;
   el.className = `toast show ${kind}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.className = 'toast'), kind === 'err' ? 6000 : 3500);
+  // i messaggi lunghi restano di più, così si fa in tempo a leggerli
+  toastTimer = setTimeout(() => (el.className = 'toast'), Math.max(kind === 'err' ? 6000 : 3500, msg.length * 70));
 }

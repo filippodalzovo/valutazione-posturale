@@ -802,7 +802,7 @@ async function caricaFoto(file) {
     foto = await fileToFoto(file);
   } catch (err) {
     console.error(err);
-    toast('Non riesco a leggere questa immagine. Prova con un JPG, PNG o HEIC.', 'err');
+    toast(`Non riesco a leggere questa immagine (${err.message}). Prova con un JPG, PNG o HEIC.`, 'err');
     return;
   }
   const sfoca = sfocaViso();
