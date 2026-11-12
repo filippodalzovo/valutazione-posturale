@@ -54,15 +54,27 @@ async function descriviFile(file) {
   return `tipo «${file.type || 'sconosciuto'}», contenuto «${marca}», ${(file.size / 1048576).toFixed(1)} MB`;
 }
 
+// Le foto prese dall'app Foto del Mac arrivano come copie temporanee che macOS può
+// cambiare o togliere subito dopo: si leggono in memoria appena scelte, prima di ogni attesa.
+export function leggiSubito(file) {
+  const p = file.arrayBuffer().then((b) => new File([b], file.name, { type: file.type, lastModified: file.lastModified }));
+  p.catch(() => {});
+  return p;
+}
+
+export const FILE_SPARITO = 'Il Mac non permette di leggere questa foto: succede con le foto prese direttamente dall\'app Foto. '
+  + 'Trascinala prima sulla Scrivania (oppure in Foto: File → Esporta) e carica quel file.';
+export const nonLeggibile = (err) => err?.name === 'NotReadableError' || err?.cause?.name === 'NotReadableError';
+
 export async function fileToFoto(file, max = 1400) {
   try {
     return await daImmagine(file, max);
   } catch (err) {
-    let motivo = '';
-    const jpg = await daHeic(file).catch((e) => { console.error(e); motivo = `, conversione HEIC: ${e?.message || e}`; return null; });
+    let motivo = '', errHeic = null;
+    const jpg = await daHeic(file).catch((e) => { console.error(e); errHeic = e; motivo = `, conversione HEIC: ${e?.message || e}`; return null; });
     if (jpg) return daImmagine(jpg, max);
     const e = new Error(`${await descriviFile(file).catch(() => '')}${motivo}`);
-    e.cause = err;
+    e.cause = errHeic?.name === 'NotReadableError' ? errHeic : err;
     throw e;
   }
 }

@@ -1,6 +1,6 @@
 // Foto allegate ai singoli test: viso sfocato in automatico, goniometro
 // (angoli e inclinazioni) con copia del valore nel campo del test.
-import { fileToFoto, ACCETTA_FOTO, PhotoEditor, blurFotoArea, loadImage, lineText } from './photo.js';
+import { fileToFoto, ACCETTA_FOTO, leggiSubito, FILE_SPARITO, nonLeggibile, PhotoEditor, blurFotoArea, loadImage, lineText } from './photo.js';
 import { detectImage, angle3, inclination } from './pose.js';
 import { faceEllipse, ellipseFromCorners, visoVisibile } from './privacy.js';
 import { assicuraBase, stimaBolla, impostaBolla, accendiBolla, raddrizzaConLinea, tornaAllaStima, sfocaEllisse, bollaBoxHtml, gradiTxt } from './bolla.js';
@@ -88,7 +88,7 @@ export function initTestFoto(api) {
     if (e.target.id === 'tfm-bolla-toggle') toggleBolla(e.target.checked);
   });
   $('#tfm-input').addEventListener('change', async (e) => {
-    const files = [...e.target.files];
+    const files = [...e.target.files].map((f) => ({ nome: f.name, copia: leggiSubito(f) }));
     e.target.value = '';
     if (files.length && inAttesa) await aggiungi(files, inAttesa);
   });
@@ -125,12 +125,12 @@ async function aggiungi(files, { testId, lato: etichetta }) {
   d.test[testId].foto ??= [];
   let ultimo = null, nonTrovati = 0, guasto = false;
   app.toast(`Preparo ${files.length > 1 ? `${files.length} foto` : 'la foto'} e sfoco il viso…`);
-  for (const file of files) {
+  for (const { nome, copia } of files) {
     let f;
     try {
-      f = await fileToFoto(file, 1200);
+      f = await fileToFoto(await copia, 1200);
     } catch (err) {
-      app.toast(`Non riesco a leggere «${file.name}» (${err.message}).`, 'err');
+      app.toast(nonLeggibile(err) ? FILE_SPARITO : `Non riesco a leggere «${nome}» (${err.message}).`, 'err');
       continue;
     }
     Object.assign(f, { id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, etichetta, nota: '', scheletro: false, piombo: null });

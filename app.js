@@ -14,7 +14,7 @@ import { consensoHtml } from './consenso.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi, elimina } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
-import { PhotoEditor, fileToFoto, ACCETTA_FOTO, eFoto, loadImage, lineText, blurFotoArea, renderFotoDataUrl } from './photo.js';
+import { PhotoEditor, fileToFoto, ACCETTA_FOTO, eFoto, leggiSubito, FILE_SPARITO, nonLeggibile, loadImage, lineText, blurFotoArea, renderFotoDataUrl } from './photo.js';
 import { faceEllipse, ellipseFromCorners, blurEllipse, visoVisibile } from './privacy.js';
 import { assicuraBase, stimaBolla, impostaBolla, accendiBolla, raddrizzaConLinea, tornaAllaStima, sfocaEllisse, bollaBoxHtml, gradiTxt } from './bolla.js';
 import { analyzeVideo, loadVideo, drawChart, drawSkeleton, nearestFrame, snapshot, COLORI } from './video.js';
@@ -628,12 +628,13 @@ function buildFotoTab() {
     e.preventDefault();
     $('.dropzone')?.classList.remove('over');
     const f = [...e.dataTransfer.files].find(eFoto);
-    if (f) caricaFoto(f);
+    if (f) caricaFoto(leggiSubito(f));
   });
   $('#foto-input').addEventListener('change', (e) => {
     const f = e.target.files[0];
+    const copia = f && leggiSubito(f);
     e.target.value = '';
-    if (f) caricaFoto(f);
+    if (copia) caricaFoto(copia);
   });
 }
 
@@ -799,10 +800,10 @@ async function caricaFoto(file) {
   const vista = vistaAttiva;
   let foto;
   try {
-    foto = await fileToFoto(file);
+    foto = await fileToFoto(await file);
   } catch (err) {
     console.error(err);
-    toast(`Non riesco a leggere questa immagine (${err.message}). Prova con un JPG, PNG o HEIC.`, 'err');
+    toast(nonLeggibile(err) ? FILE_SPARITO : `Non riesco a leggere questa immagine (${err.message}). Prova con un JPG, PNG o HEIC.`, 'err');
     return;
   }
   const sfoca = sfocaViso();
