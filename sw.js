@@ -4,7 +4,7 @@
 //
 // Quando cambiano i file dell'app, aumentare VERSIONE: al primo avvio con il
 // server acceso la nuova versione viene scaricata e usata dall'avvio successivo.
-const VERSIONE = 'vp-2026-10-15-5';
+const VERSIONE = 'vp-2026-11-12-1';
 
 const APP = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
@@ -18,6 +18,7 @@ const MOTORE = [
   'vendor/mediapipe/vision_bundle.mjs',
   'vendor/mediapipe/wasm/vision_wasm_internal.js', 'vendor/mediapipe/wasm/vision_wasm_internal.wasm',
   'vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js', 'vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm',
+  'vendor/heic/heic-to.js',
   'vendor/models/pose_landmarker_heavy.task', 'vendor/models/pose_landmarker_full.task', 'vendor/models/hand_landmarker.task',
 ];
 

@@ -37,7 +37,7 @@ export function guidaHtml() {
   <h2>3. Una valutazione, passo per passo</h2>
   <ol>
     <li><strong>Anagrafica</strong>: dati del cliente, altezza (serve per i centimetri) e <strong>consenso</strong> a foto e video.</li>
-    <li><strong>Foto</strong>: anteriore, posteriore e laterali, caricate dal dispositivo o scattate con «Scatta con la fotocamera»
+    <li><strong>Foto</strong>: anteriore, posteriore e laterali, caricate dal dispositivo (JPG, PNG o HEIC dell'iPhone, convertite sul computer) o scattate con «Scatta con la fotocamera»
       (webcam del Mac o fotocamera dell'iPad, con timer e linea centrale per allineare il cliente). L'app riconosce i punti del corpo, sfoca il viso e calcola
       inclinazioni e allineamenti. Controlla i punti e trascinali se serve. «In bolla» raddrizza la foto usando lo sfondo.</li>
     <li><strong>Osservazione statica</strong>: spunta ciò che osservi. Per le voci misurabili compare il suggerimento

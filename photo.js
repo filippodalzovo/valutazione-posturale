@@ -35,7 +35,29 @@ export function loadImage(src) {
 // Le foto finiscono dentro il file .json della valutazione (sincronizzato su OneDrive):
 // 1400 px sul lato lungo bastano per le misure, il motore di analisi lavora a risoluzione più bassa.
 export const QUALITA_JPEG = 0.82;
+
+export const ACCETTA_FOTO = 'image/*,.heic,.heif';
+export const eFoto = (f) => f.type.startsWith('image/') || /\.hei[cf]$/i.test(f.name);
+
+// Chrome non legge le foto HEIC dell'iPhone: si convertono qui sul computer con libheif
+// (3 MB, caricata solo al primo HEIC). Safari le legge da solo e non passa di qui.
+async function daHeic(file) {
+  const { isHeic, heicTo } = await import('./vendor/heic/heic-to.js');
+  if (!(await isHeic(file))) return null;
+  return heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 });
+}
+
 export async function fileToFoto(file, max = 1400) {
+  try {
+    return await daImmagine(file, max);
+  } catch (err) {
+    const jpg = await daHeic(file).catch((e) => { console.error(e); return null; });
+    if (!jpg) throw err;
+    return daImmagine(jpg, max);
+  }
+}
+
+async function daImmagine(file, max) {
   const url = URL.createObjectURL(file);
   try {
     const im = await loadImage(url);

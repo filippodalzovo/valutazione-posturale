@@ -1,6 +1,6 @@
 // Foto allegate ai singoli test: viso sfocato in automatico, goniometro
 // (angoli e inclinazioni) con copia del valore nel campo del test.
-import { fileToFoto, PhotoEditor, blurFotoArea, loadImage, lineText } from './photo.js';
+import { fileToFoto, ACCETTA_FOTO, PhotoEditor, blurFotoArea, loadImage, lineText } from './photo.js';
 import { detectImage, angle3, inclination } from './pose.js';
 import { faceEllipse, ellipseFromCorners, visoVisibile } from './privacy.js';
 import { assicuraBase, stimaBolla, impostaBolla, accendiBolla, raddrizzaConLinea, tornaAllaStima, sfocaEllisse, bollaBoxHtml, gradiTxt } from './bolla.js';
@@ -45,7 +45,7 @@ export function initTestFoto(api) {
         <button class="small danger" data-maction="elimina">Elimina questa foto</button>
       </div>
     </div></div>
-    <input type="file" id="tfm-input" accept="image/*" multiple hidden>`;
+    <input type="file" id="tfm-input" accept="${ACCETTA_FOTO}" multiple hidden>`;
   document.body.appendChild(m);
 
   editor = new PhotoEditor($('#tfm-canvas'), {

@@ -14,7 +14,7 @@ import { consensoHtml } from './consenso.js';
 import { calcolaSuggerimenti, SOGLIE_DEFAULT, SOGLIE_INFO } from './suggerimenti.js';
 import { leggi, scrivi, elimina } from './impostazioni.js';
 import { detectImage, staticMeasures, fmtMeasure, round, angle3, SERIE_LABEL } from './pose.js';
-import { PhotoEditor, fileToFoto, loadImage, lineText, blurFotoArea, renderFotoDataUrl } from './photo.js';
+import { PhotoEditor, fileToFoto, ACCETTA_FOTO, eFoto, loadImage, lineText, blurFotoArea, renderFotoDataUrl } from './photo.js';
 import { faceEllipse, ellipseFromCorners, blurEllipse, visoVisibile } from './privacy.js';
 import { assicuraBase, stimaBolla, impostaBolla, accendiBolla, raddrizzaConLinea, tornaAllaStima, sfocaEllisse, bollaBoxHtml, gradiTxt } from './bolla.js';
 import { analyzeVideo, loadVideo, drawChart, drawSkeleton, nearestFrame, snapshot, COLORI } from './video.js';
@@ -590,7 +590,7 @@ function buildFotoTab() {
         </div>
       </div>
     </div>
-    <input type="file" id="foto-input" accept="image/*" hidden>`;
+    <input type="file" id="foto-input" accept="${ACCETTA_FOTO}" hidden>`;
 
   editor = new PhotoEditor($('#foto-canvas'), {
     onChange: (o) => {
@@ -627,7 +627,7 @@ function buildFotoTab() {
   tab.addEventListener('drop', (e) => {
     e.preventDefault();
     $('.dropzone')?.classList.remove('over');
-    const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'));
+    const f = [...e.dataTransfer.files].find(eFoto);
     if (f) caricaFoto(f);
   });
   $('#foto-input').addEventListener('change', (e) => {
@@ -802,7 +802,7 @@ async function caricaFoto(file) {
     foto = await fileToFoto(file);
   } catch (err) {
     console.error(err);
-    toast('Non riesco a leggere questa immagine. Prova con un JPG o PNG.', 'err');
+    toast('Non riesco a leggere questa immagine. Prova con un JPG, PNG o HEIC.', 'err');
     return;
   }
   const sfoca = sfocaViso();
